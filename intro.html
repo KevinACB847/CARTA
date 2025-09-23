@@ -17,7 +17,6 @@
       font-family: "Cinzel", serif;
     }
 
-    /* Botón play */
     #playBtn {
       padding: 12px 28px;
       font-size: 1.2rem;
@@ -28,13 +27,13 @@
       cursor: pointer;
       margin-top: 20px;
       transition: background 0.3s, transform 0.3s;
+      z-index: 10;
     }
     #playBtn:hover {
       background: rgba(255,255,255,0.2);
       transform: scale(1.1);
     }
 
-    /* Texto cine */
     #titulo {
       font-size: 2.2rem;
       opacity: 0;
@@ -44,6 +43,7 @@
       letter-spacing: 3px;
       text-shadow: 0 0 20px rgba(255,255,255,0.6);
     }
+
     #escena {
       font-size: 1.5rem;
       margin-top: 20px;
@@ -53,7 +53,6 @@
       text-shadow: 0 0 10px rgba(255,255,255,0.5);
     }
 
-    /* Estrellas */
     .star {
       position: absolute;
       width: 2px;
@@ -66,51 +65,15 @@
       from { opacity: 0.2; transform: scale(0.8); }
       to { opacity: 1; transform: scale(1.3); }
     }
-
-    /* Nebulosas */
-    .nebula {
-      position: absolute;
-      width: 600px;
-      height: 600px;
-      background: radial-gradient(circle, rgba(147,197,253,0.3), transparent 70%);
-      filter: blur(100px);
-      animation: float 30s infinite alternate ease-in-out;
-    }
-    .nebula:nth-child(1) { top: 10%; left: 20%; }
-    .nebula:nth-child(2) { bottom: 15%; right: 25%; background: radial-gradient(circle, rgba(244,114,182,0.3), transparent 70%); }
-    @keyframes float {
-      from { transform: translate(0,0); }
-      to { transform: translate(60px, -40px); }
-    }
-
-    /* Estrellas fugaces */
-    .shooting-star {
-      position: absolute;
-      width: 2px;
-      height: 100px;
-      background: linear-gradient(white, transparent);
-      transform: rotate(-45deg);
-      top: -100px;
-      opacity: 0;
-      animation: fall 2s linear forwards;
-    }
-    @keyframes fall {
-      0% { transform: translate(0,0) rotate(-45deg); opacity: 1; }
-      100% { transform: translate(-400px,400px) rotate(-45deg); opacity: 0; }
-    }
   </style>
 </head>
 <body>
+  <!-- ojo: carpeta en minúsculas -->
   <audio id="musica" src="music/planetarium.mp3"></audio>
 
-  <!-- Texto inicial -->
   <div id="titulo">✨ Un viaje musical inspirado en La La Land ✨</div>
   <div id="escena"></div>
   <button id="playBtn">▶ Iniciar</button>
-
-  <!-- Nebulosas -->
-  <div class="nebula"></div>
-  <div class="nebula"></div>
 
   <script>
     const audio = document.getElementById("musica");
@@ -118,16 +81,19 @@
     const escenaDiv = document.getElementById("escena");
     const playBtn = document.getElementById("playBtn");
 
-    // Al dar click, comienza la música
     playBtn.addEventListener("click", () => {
+      audio.load();   // forzar recarga
       audio.volume = 0.8;
-      audio.play().catch(err => console.log("Error play:", err));
-      titulo.style.opacity = 1;
-      titulo.style.transform = "scale(1)";
-      playBtn.style.display = "none";
+      audio.play().then(() => {
+        titulo.style.opacity = 1;
+        titulo.style.transform = "scale(1)";
+        playBtn.style.display = "none";
+      }).catch(err => {
+        console.error("Error reproduciendo audio:", err);
+      });
     });
 
-    // Estrellas
+    // estrellas
     function createStar() {
       const star = document.createElement("div");
       star.className = "star";
@@ -138,32 +104,17 @@
     }
     for (let i = 0; i < 120; i++) createStar();
 
-    // Estrellas fugaces
-    function shootingStar(delay) {
-      setTimeout(() => {
-        const s = document.createElement("div");
-        s.className = "shooting-star";
-        s.style.left = Math.random()*window.innerWidth + "px";
-        document.body.appendChild(s);
-        setTimeout(()=>s.remove(), 2500);
-      }, delay);
-    }
-    shootingStar(15000);
-    shootingStar(30000);
-    shootingStar(45000);
-
-    // Escenas sincronizadas
+    // escenas según tiempo
     audio.addEventListener("timeupdate", () => {
       const t = audio.currentTime;
-      if (t < 15) {
-        escenaDiv.style.opacity = 0;
-      } else if (t >= 15 && t < 50) {
+      if (t >= 15 && t < 50) {
         escenaDiv.style.opacity = 1;
         escenaDiv.textContent = "🌌 Nuestro viaje comienza...";
-      } else if (t >= 50 && t < 61) {
+      } else {
         escenaDiv.style.opacity = 0;
       }
     });
   </script>
 </body>
 </html>
+
