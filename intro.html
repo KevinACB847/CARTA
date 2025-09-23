@@ -17,22 +17,40 @@
       font-family: "Cinzel", serif;
     }
 
-    /* Texto tipo cine */
-    #titulo {
-      font-size: 2rem;
-      opacity: 0;
-      transition: opacity 3s ease, transform 5s ease;
-      transform: scale(1.2);
-      text-align: center;
-      letter-spacing: 2px;
+    /* Botón play */
+    #playBtn {
+      padding: 12px 28px;
+      font-size: 1.2rem;
+      border: 2px solid #fff;
+      border-radius: 30px;
+      background: transparent;
+      color: #fff;
+      cursor: pointer;
+      margin-top: 20px;
+      transition: background 0.3s, transform 0.3s;
+    }
+    #playBtn:hover {
+      background: rgba(255,255,255,0.2);
+      transform: scale(1.1);
     }
 
+    /* Texto cine */
+    #titulo {
+      font-size: 2.2rem;
+      opacity: 0;
+      transition: opacity 3s ease, transform 4s ease;
+      transform: scale(1.2);
+      text-align: center;
+      letter-spacing: 3px;
+      text-shadow: 0 0 20px rgba(255,255,255,0.6);
+    }
     #escena {
       font-size: 1.5rem;
       margin-top: 20px;
       opacity: 0;
-      transition: opacity 2s ease, transform 4s ease;
+      transition: opacity 2s ease;
       transform: translateY(20px);
+      text-shadow: 0 0 10px rgba(255,255,255,0.5);
     }
 
     /* Estrellas */
@@ -52,14 +70,14 @@
     /* Nebulosas */
     .nebula {
       position: absolute;
-      width: 500px;
-      height: 500px;
-      background: radial-gradient(circle, rgba(147,197,253,0.25), transparent 70%);
-      filter: blur(80px);
+      width: 600px;
+      height: 600px;
+      background: radial-gradient(circle, rgba(147,197,253,0.3), transparent 70%);
+      filter: blur(100px);
       animation: float 30s infinite alternate ease-in-out;
     }
     .nebula:nth-child(1) { top: 10%; left: 20%; }
-    .nebula:nth-child(2) { bottom: 15%; right: 25%; background: radial-gradient(circle, rgba(244,114,182,0.25), transparent 70%); }
+    .nebula:nth-child(2) { bottom: 15%; right: 25%; background: radial-gradient(circle, rgba(244,114,182,0.3), transparent 70%); }
     @keyframes float {
       from { transform: translate(0,0); }
       to { transform: translate(60px, -40px); }
@@ -69,11 +87,10 @@
     .shooting-star {
       position: absolute;
       width: 2px;
-      height: 80px;
+      height: 100px;
       background: linear-gradient(white, transparent);
       transform: rotate(-45deg);
       top: -100px;
-      left: 50%;
       opacity: 0;
       animation: fall 2s linear forwards;
     }
@@ -84,12 +101,12 @@
   </style>
 </head>
 <body>
-  <audio id="musica" src="music/planetarium.mp3"></audio>
+  <audio id="musica" src="MUSIC/planetarium.mp3"></audio>
 
-  <!-- Título inicial -->
+  <!-- Texto inicial -->
   <div id="titulo">✨ Un viaje musical inspirado en La La Land ✨</div>
   <div id="escena"></div>
-  <button id="playBtn">▶️ Iniciar</button>
+  <button id="playBtn">▶ Iniciar</button>
 
   <!-- Nebulosas -->
   <div class="nebula"></div>
@@ -101,14 +118,16 @@
     const escenaDiv = document.getElementById("escena");
     const playBtn = document.getElementById("playBtn");
 
+    // Al dar click, comienza la música
     playBtn.addEventListener("click", () => {
-      audio.play();
+      audio.volume = 0.8;
+      audio.play().catch(err => console.log("Error play:", err));
       titulo.style.opacity = 1;
       titulo.style.transform = "scale(1)";
-      playBtn.style.display = "none"; // ocultar botón al iniciar
+      playBtn.style.display = "none";
     });
 
-    // Crear estrellas
+    // Estrellas
     function createStar() {
       const star = document.createElement("div");
       star.className = "star";
@@ -117,9 +136,9 @@
       star.style.animationDuration = (2 + Math.random()*3) + "s";
       document.body.appendChild(star);
     }
-    for (let i = 0; i < 80; i++) createStar();
+    for (let i = 0; i < 120; i++) createStar();
 
-    // Estrellas fugaces programadas
+    // Estrellas fugaces
     function shootingStar(delay) {
       setTimeout(() => {
         const s = document.createElement("div");
@@ -129,21 +148,20 @@
         setTimeout(()=>s.remove(), 2500);
       }, delay);
     }
-    shootingStar(20000); // a los 20s
-    shootingStar(40000); // a los 40s
-    shootingStar(55000); // a los 55s
+    shootingStar(15000);
+    shootingStar(30000);
+    shootingStar(45000);
 
-    // Cambiar escenas según la música
+    // Escenas sincronizadas
     audio.addEventListener("timeupdate", () => {
       const t = audio.currentTime;
-
       if (t < 15) {
         escenaDiv.style.opacity = 0;
       } else if (t >= 15 && t < 50) {
         escenaDiv.style.opacity = 1;
         escenaDiv.textContent = "🌌 Nuestro viaje comienza...";
       } else if (t >= 50 && t < 61) {
-        escenaDiv.style.opacity = 0; // preparación para la transición
+        escenaDiv.style.opacity = 0;
       }
     });
   </script>
