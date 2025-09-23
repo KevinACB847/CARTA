@@ -29,13 +29,32 @@
 <body>
 
   <!-- Reproductor oculto -->
-  <audio id="musica" src="music/planetarium.mp3"></audio>
+<audio id="musica" src="music/planetarium.mp3"></audio>
 
-  <h1>🌌 Viaje musical La La Land</h1>
-  <div id="escena">Esperando inicio...</div>
-  <button onclick="togglePlay()">▶️ Play / ⏸️ Pause</button>
+<h1>🌌 Viaje musical La La Land</h1>
+<div id="escena">Esperando inicio...</div>
+<button id="playBtn">▶️ Play</button>
+<button id="pauseBtn">⏸️ Pause</button>
 
-  <script>
+<script>
+  const audio = document.getElementById("musica");
+  const escenaDiv = document.getElementById("escena");
+
+  document.getElementById("playBtn").addEventListener("click", () => {
+    audio.play().then(() => {
+      escenaDiv.textContent = "🎶 Música iniciada...";
+    }).catch(err => {
+      escenaDiv.textContent = "⚠️ Error: el navegador bloqueó la reproducción";
+      console.error(err);
+    });
+  });
+
+  document.getElementById("pauseBtn").addEventListener("click", () => {
+    audio.pause();
+    escenaDiv.textContent = "⏸️ Música pausada";
+  });
+</script>
+
     const audio = document.getElementById("musica");
     const escenaDiv = document.getElementById("escena");
 
@@ -64,4 +83,5 @@
 
 </body>
 </html>
+
 
