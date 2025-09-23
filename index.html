@@ -55,33 +55,8 @@
   });
 </script>
 
-    const audio = document.getElementById("musica");
-    const escenaDiv = document.getElementById("escena");
-
-    function togglePlay() {
-      if (audio.paused) audio.play();
-      else audio.pause();
-    }
-
-    // Detectar en qué segundo está la canción
-    audio.addEventListener("timeupdate", () => {
-      const t = audio.currentTime;
-
-      if (t < 61) {
-        escenaDiv.textContent = "Escena 1: Introducción lenta 🌙";
-      } else if (t < 145) {
-        escenaDiv.textContent = "Escena 2: Preparación del viaje ✨";
-      } else if (t < 147) {
-        escenaDiv.textContent = "Escena 3: Silencio... calma antes del boom 🤫";
-      } else if (t < 238) {
-        escenaDiv.textContent = "Escena 4: Clímax épico 🌟🎇";
-      } else {
-        escenaDiv.textContent = "Escena 5: Cierre melancólico 💫";
-      }
-    });
-  </script>
-
 </body>
 </html>
+
 
 
