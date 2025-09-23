@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Viaje La La Land</title>
+  <style>
+    body {
+      background: #000;
+      color: #fff;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      margin: 0;
+      font-family: Arial, sans-serif;
+      flex-direction: column;
+    }
+    #escena {
+      font-size: 1.5rem;
+      margin-top: 20px;
+    }
+    button {
+      margin-top: 20px;
+      padding: 10px 20px;
+      font-size: 1rem;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Reproductor oculto -->
+  <audio id="musica" src="music/Planetarium.mp3"></audio>
+
+  <h1>🌌 Viaje musical La La Land</h1>
+  <div id="escena">Esperando inicio...</div>
+  <button onclick="togglePlay()">▶️ Play / ⏸️ Pause</button>
+
+  <script>
+    const audio = document.getElementById("musica");
+    const escenaDiv = document.getElementById("escena");
+
+    function togglePlay() {
+      if (audio.paused) audio.play();
+      else audio.pause();
+    }
+
+    // Detectar en qué segundo está la canción
+    audio.addEventListener("timeupdate", () => {
+      const t = audio.currentTime;
+
+      if (t < 61) {
+        escenaDiv.textContent = "Escena 1: Introducción lenta 🌙";
+      } else if (t < 145) {
+        escenaDiv.textContent = "Escena 2: Preparación del viaje ✨";
+      } else if (t < 147) {
+        escenaDiv.textContent = "Escena 3: Silencio... calma antes del boom 🤫";
+      } else if (t < 238) {
+        escenaDiv.textContent = "Escena 4: Clímax épico 🌟🎇";
+      } else {
+        escenaDiv.textContent = "Escena 5: Cierre melancólico 💫";
+      }
+    });
+  </script>
+
+</body>
+</html>
