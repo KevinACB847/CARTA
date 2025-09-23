@@ -28,35 +28,53 @@
 </head>
 <body>
 
-  <!-- Reproductor oculto -->
-<audio id="musica" src="music/planetarium.mp3"></audio>
+  <!-- Reproductor -->
+  <audio id="musica" src="music/planetarium.mp3"></audio>
 
-<h1>🌌 Viaje musical La La Land</h1>
-<div id="escena">Esperando inicio...</div>
-<button id="playBtn">▶️ Play</button>
-<button id="pauseBtn">⏸️ Pause</button>
+  <h1>🌌 Viaje musical La La Land</h1>
+  <div id="escena">Esperando inicio...</div>
+  <button id="playBtn">▶️ Play</button>
+  <button id="pauseBtn">⏸️ Pause</button>
 
-<script>
-  const audio = document.getElementById("musica");
-  const escenaDiv = document.getElementById("escena");
+  <script>
+    const audio = document.getElementById("musica");
+    const escenaDiv = document.getElementById("escena");
 
-  document.getElementById("playBtn").addEventListener("click", () => {
-    audio.play().then(() => {
-      escenaDiv.textContent = "🎶 Música iniciada...";
-    }).catch(err => {
-      escenaDiv.textContent = "⚠️ Error: el navegador bloqueó la reproducción";
-      console.error(err);
+    document.getElementById("playBtn").addEventListener("click", () => {
+      audio.play().then(() => {
+        escenaDiv.textContent = "🎶 Música iniciada...";
+      }).catch(err => {
+        escenaDiv.textContent = "⚠️ Error: el navegador bloqueó la reproducción";
+        console.error(err);
+      });
     });
-  });
 
-  document.getElementById("pauseBtn").addEventListener("click", () => {
-    audio.pause();
-    escenaDiv.textContent = "⏸️ Música pausada";
-  });
-</script>
+    document.getElementById("pauseBtn").addEventListener("click", () => {
+      audio.pause();
+      escenaDiv.textContent = "⏸️ Música pausada";
+    });
+
+    // Detectar en qué segundo está la canción
+    audio.addEventListener("timeupdate", () => {
+      const t = audio.currentTime;
+
+      if (t < 61) {
+        escenaDiv.textContent = "Escena 1: Introducción lenta 🌙";
+      } else if (t < 145) {
+        escenaDiv.textContent = "Escena 2: Preparación del viaje ✨";
+      } else if (t < 147) {
+        escenaDiv.textContent = "Escena 3: Silencio... calma antes del boom 🤫";
+      } else if (t < 238) {
+        escenaDiv.textContent = "Escena 4: Clímax épico 🌟🎇";
+      } else {
+        escenaDiv.textContent = "Escena 5: Cierre melancólico 💫";
+      }
+    });
+  </script>
 
 </body>
 </html>
+
 
 
 
