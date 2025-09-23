@@ -2,6 +2,7 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
   <title>Intro La La Land</title>
   <style>
     body {
@@ -17,7 +18,6 @@
       font-family: "Cinzel", serif;
     }
 
-    /* Botón */
     #playBtn {
       padding: 12px 28px;
       font-size: 1.2rem;
@@ -35,7 +35,6 @@
       transform: scale(1.1);
     }
 
-    /* Título */
     #titulo {
       font-size: 2.5rem;
       opacity: 0;
@@ -43,10 +42,8 @@
       letter-spacing: 3px;
       text-align: center;
       text-shadow: 0 0 30px rgba(255,255,255,0.8), 0 0 60px rgba(147,197,253,0.5);
-      animation: none;
     }
 
-    /* Texto secundario */
     #escena {
       font-size: 1.5rem;
       margin-top: 20px;
@@ -55,21 +52,7 @@
       text-shadow: 0 0 10px rgba(255,255,255,0.6);
     }
 
-    /* Estrellas */
-    .star {
-      position: absolute;
-      width: 2px;
-      height: 2px;
-      background: white;
-      border-radius: 50%;
-      animation: twinkle 3s infinite alternate;
-    }
-    @keyframes twinkle {
-      from { opacity: 0.2; transform: scale(0.8); }
-      to { opacity: 1; transform: scale(1.3); }
-    }
-
-    /* Nebulosas */
+    /* Nebulosas (solo PC) */
     .nebula {
       position: absolute;
       width: 600px;
@@ -109,15 +92,84 @@
   <div id="escena"></div>
   <button id="playBtn">▶ Iniciar</button>
 
-  <!-- Nebulosas -->
-  <div class="nebula"></div>
-  <div class="nebula"></div>
+  <!-- Nebulosas solo en PC -->
+  <div class="nebula pc-only"></div>
+  <div class="nebula pc-only"></div>
+
+  <!-- Canvas para estrellas en móvil -->
+  <canvas id="starCanvas"></canvas>
 
   <script>
     const audio = document.getElementById("musica");
     const titulo = document.getElementById("titulo");
     const escenaDiv = document.getElementById("escena");
     const playBtn = document.getElementById("playBtn");
+    const starCanvas = document.getElementById("starCanvas");
+    const ctx = starCanvas.getContext("2d");
+
+    // Resize canvas full screen
+    function resizeCanvas() {
+      starCanvas.width = window.innerWidth;
+      starCanvas.height = window.innerHeight;
+    }
+    window.addEventListener("resize", resizeCanvas);
+    resizeCanvas();
+
+    // Detect mobile
+    const isMobile = window.innerWidth < 768;
+
+    // Estrellas PC (divs)
+    function createStarDivs() {
+      for (let i = 0; i < 120; i++) {
+        const star = document.createElement("div");
+        star.className = "star";
+        star.style.position = "absolute";
+        star.style.width = "2px";
+        star.style.height = "2px";
+        star.style.background = "white";
+        star.style.borderRadius = "50%";
+        star.style.top = Math.random() * window.innerHeight + "px";
+        star.style.left = Math.random() * window.innerWidth + "px";
+        star.style.opacity = Math.random();
+        document.body.appendChild(star);
+      }
+    }
+
+    // Estrellas móviles en canvas
+    let stars = [];
+    function initCanvasStars() {
+      stars = [];
+      for (let i = 0; i < 80; i++) {
+        stars.push({
+          x: Math.random() * starCanvas.width,
+          y: Math.random() * starCanvas.height,
+          r: Math.random() * 1.5,
+          o: Math.random()
+        });
+      }
+    }
+    function drawStars() {
+      ctx.clearRect(0, 0, starCanvas.width, starCanvas.height);
+      ctx.fillStyle = "white";
+      for (let s of stars) {
+        ctx.globalAlpha = s.o;
+        ctx.beginPath();
+        ctx.arc(s.x, s.y, s.r, 0, Math.PI*2);
+        ctx.fill();
+        s.o += (Math.random()-0.5)*0.05;
+        if (s.o < 0.1) s.o = 0.1;
+        if (s.o > 1) s.o = 1;
+      }
+      requestAnimationFrame(drawStars);
+    }
+
+    // Configuración inicial
+    if (isMobile) {
+      initCanvasStars();
+      drawStars();
+    } else {
+      createStarDivs();
+    }
 
     playBtn.addEventListener("click", () => {
       audio.load();
@@ -125,24 +177,13 @@
       audio.play().then(() => {
         titulo.style.opacity = 1;
         titulo.style.transform = "scale(1)";
-        titulo.style.animation = "fadeZoom 8s ease forwards";
         playBtn.style.display = "none";
-      }).catch(err => console.error("Error reproduciendo audio:", err));
+      }).catch(err => console.error("Error audio:", err));
     });
 
-    // estrellas
-    function createStar() {
-      const star = document.createElement("div");
-      star.className = "star";
-      star.style.top = Math.random() * window.innerHeight + "px";
-      star.style.left = Math.random() * window.innerWidth + "px";
-      star.style.animationDuration = (2 + Math.random()*3) + "s";
-      document.body.appendChild(star);
-    }
-    for (let i = 0; i < 150; i++) createStar();
-
-    // estrellas fugaces
+    // Estrellas fugaces (solo PC, menos carga en móviles)
     function shootingStar(delay) {
+      if (isMobile) return;
       setTimeout(() => {
         const s = document.createElement("div");
         s.className = "shooting-star";
@@ -155,9 +196,10 @@
     shootingStar(25000);
     shootingStar(45000);
 
-    // escenas sincronizadas
+    // Escenas sincronizadas
     audio.addEventListener("timeupdate", () => {
       const t = audio.currentTime;
+      console.log("segundos:", t.toFixed(1)); // debug
       if (t >= 15 && t < 50) {
         escenaDiv.style.opacity = 1;
         escenaDiv.textContent = "🌌 Nuestro viaje comienza...";
@@ -168,4 +210,5 @@
   </script>
 </body>
 </html>
+
 
