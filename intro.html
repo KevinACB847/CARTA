@@ -14,14 +14,25 @@
       align-items: center;
       flex-direction: column;
       color: #fff;
-      font-family: "Segoe UI", sans-serif;
+      font-family: "Cinzel", serif;
+    }
+
+    /* Texto tipo cine */
+    #titulo {
+      font-size: 2rem;
+      opacity: 0;
+      transition: opacity 3s ease, transform 5s ease;
+      transform: scale(1.2);
+      text-align: center;
+      letter-spacing: 2px;
     }
 
     #escena {
       font-size: 1.5rem;
       margin-top: 20px;
       opacity: 0;
-      transition: opacity 2s ease;
+      transition: opacity 2s ease, transform 4s ease;
+      transform: translateY(20px);
     }
 
     /* Estrellas */
@@ -31,16 +42,30 @@
       height: 2px;
       background: white;
       border-radius: 50%;
-      opacity: 0;
       animation: twinkle 3s infinite alternate;
     }
-
     @keyframes twinkle {
       from { opacity: 0.2; transform: scale(0.8); }
       to { opacity: 1; transform: scale(1.3); }
     }
 
-    /* Estrella fugaz */
+    /* Nebulosas */
+    .nebula {
+      position: absolute;
+      width: 500px;
+      height: 500px;
+      background: radial-gradient(circle, rgba(147,197,253,0.25), transparent 70%);
+      filter: blur(80px);
+      animation: float 30s infinite alternate ease-in-out;
+    }
+    .nebula:nth-child(1) { top: 10%; left: 20%; }
+    .nebula:nth-child(2) { bottom: 15%; right: 25%; background: radial-gradient(circle, rgba(244,114,182,0.25), transparent 70%); }
+    @keyframes float {
+      from { transform: translate(0,0); }
+      to { transform: translate(60px, -40px); }
+    }
+
+    /* Estrellas fugaces */
     .shooting-star {
       position: absolute;
       width: 2px;
@@ -50,9 +75,8 @@
       top: -100px;
       left: 50%;
       opacity: 0;
-      animation: fall 3s linear forwards;
+      animation: fall 2s linear forwards;
     }
-
     @keyframes fall {
       0% { transform: translate(0,0) rotate(-45deg); opacity: 1; }
       100% { transform: translate(-400px,400px) rotate(-45deg); opacity: 0; }
@@ -62,39 +86,54 @@
 <body>
   <audio id="musica" src="music/planetarium.mp3"></audio>
 
-  <h1>🌌 Viaje musical La La Land</h1>
-  <div id="escena">Nuestro viaje comienza...</div>
-  <button id="playBtn">▶️ Play</button>
+  <!-- Título inicial -->
+  <div id="titulo">✨ Un viaje musical inspirado en La La Land ✨</div>
+  <div id="escena"></div>
+  <button id="playBtn">▶️ Iniciar</button>
+
+  <!-- Nebulosas -->
+  <div class="nebula"></div>
+  <div class="nebula"></div>
 
   <script>
     const audio = document.getElementById("musica");
+    const titulo = document.getElementById("titulo");
     const escenaDiv = document.getElementById("escena");
+    const playBtn = document.getElementById("playBtn");
 
-    document.getElementById("playBtn").addEventListener("click", () => {
+    playBtn.addEventListener("click", () => {
       audio.play();
+      titulo.style.opacity = 1;
+      titulo.style.transform = "scale(1)";
+      playBtn.style.display = "none"; // ocultar botón al iniciar
     });
 
-    // Generar estrellas
+    // Crear estrellas
     function createStar() {
       const star = document.createElement("div");
       star.className = "star";
       star.style.top = Math.random() * window.innerHeight + "px";
       star.style.left = Math.random() * window.innerWidth + "px";
+      star.style.animationDuration = (2 + Math.random()*3) + "s";
       document.body.appendChild(star);
     }
+    for (let i = 0; i < 80; i++) createStar();
 
-    for (let i = 0; i < 40; i++) {
-      setTimeout(createStar, i * 500); // estrellas aparecen de a poco
+    // Estrellas fugaces programadas
+    function shootingStar(delay) {
+      setTimeout(() => {
+        const s = document.createElement("div");
+        s.className = "shooting-star";
+        s.style.left = Math.random()*window.innerWidth + "px";
+        document.body.appendChild(s);
+        setTimeout(()=>s.remove(), 2500);
+      }, delay);
     }
+    shootingStar(20000); // a los 20s
+    shootingStar(40000); // a los 40s
+    shootingStar(55000); // a los 55s
 
-    // Estrella fugaz (aparece una vez en la intro)
-    setTimeout(() => {
-      const shootingStar = document.createElement("div");
-      shootingStar.className = "shooting-star";
-      document.body.appendChild(shootingStar);
-    }, 30000); // a los 30s
-
-    // Control por tiempo de música
+    // Cambiar escenas según la música
     audio.addEventListener("timeupdate", () => {
       const t = audio.currentTime;
 
@@ -104,7 +143,7 @@
         escenaDiv.style.opacity = 1;
         escenaDiv.textContent = "🌌 Nuestro viaje comienza...";
       } else if (t >= 50 && t < 61) {
-        escenaDiv.style.opacity = 0; // se va preparando para transición
+        escenaDiv.style.opacity = 0; // preparación para la transición
       }
     });
   </script>
