@@ -1,14 +1,14 @@
 /**************************************************************
- * INTRO LA LA LAND — JS COMPLETO (Optimizado)
+ * INTRO LA LA LAND — JS (Canvas Warp + DEV HUD)
  * - RUSH 40–55s (escala por capas)
- * - WARP 56–58.5s (velocidad luz con estelas GPU-friendly)
- * - BOOM 59s (flash + colapso + blackout, sin redirección)
+ * - WARP 58.8–60.0s (Canvas fluido ~1.2s)
+ * - BOOM 60.0s (flash + blackout)
+ * - Tester de tiempo: ver y saltar a cualquier marca
  * - Clic = ráfaga | Mantener = lluvia
- * - Hint, Skip, Limpieza y Accesibilidad
  **************************************************************/
 
 /* ============================================================
-   [A] AJUSTES RÁPIDOS (calibra intensidades aquí)
+   [A] AJUSTES RÁPIDOS
    ============================================================ */
 const SETTINGS = {
   // Tiempos clave (ms)
@@ -21,13 +21,17 @@ const SETTINGS = {
   T_CONST_2_MS      : 30000,
   T_SHOOT_1_MS      : 29000,
   T_SHOOT_2_MS      : 44000,
-  T_TEXTS_FADE_MS   : 50000,
-  T_RUSH_START_MS   : 40000,
-  T_WARP_START_MS   : 55500,  // empieza más tarde para evitar carga larga
-  T_PREBOOM_MS      : 58800,
-  T_BOOM_MS         : 59000,  // blackout
 
-  // Rampa de luz del velo (ms → veil)
+  // Texto se va entre 56–58s (fade 2.0s en CSS)
+  T_TEXTS_FADE_MS   : 56000,
+
+  // Rush → Warp → Boom (final dramático 59–60)
+  T_RUSH_START_MS   : 40000,
+  T_WARP_START_MS   : 58800,  // 58.8s (Canvas warp ~1.2s)
+  T_PREBOOM_MS      : 59500,  // 59.5s (tensión)
+  T_BOOM_MS         : 60000,  // 60.0s (flash+negro)
+
+  // Rampa de luz del velo
   RAMP: [
     { t:    0, veil: 1.00 },
     { t: 2000, veil: 0.70 },
@@ -36,43 +40,47 @@ const SETTINGS = {
     { t:35000, veil: 0.12 },
   ],
 
-  // Densidad de estrellas por capa (optimizado FPS)
-  STAR_TOTAL : 160,   // ↓ antes 220
+  // Estrellas DOM (ligeras para FPS)
+  STAR_TOTAL : 160,
   STAR_FAR   : 0.42,
   STAR_MID   : 0.34,
   STAR_NEAR  : 0.24,
 
-  // RUSH (máximos moderados → menos re-proyección)
+  // RUSH máximos
   RUSH_MAX_SCALE_NEAR : 2.4,
   RUSH_MAX_SCALE_MID  : 1.7,
   RUSH_MAX_SCALE_FAR  : 1.2,
 
-  // WARP (estelas + empuje radial)
-  WARP_DURATION_MS : 2500,  // ↓ antes 4000 (más corto e intenso)
-  WARP_LEN_BASE    : 30,    // px
-  WARP_LEN_MAX     : 260,   // px (sube a 260/300 si quieres MÁS)
-  WARP_PUSH_FACTOR : 0.50,  // 45% del tamaño mayor de la pantalla
+  // Canvas WARP (fluido y natural, corto e intenso)
+  WARP_DURATION_MS : 1200,   // ~1.2s (ajusta 1000–1500)
+  WARP_PARTICLES   : 650,    // cantidad de partículas
+  WARP_SPREAD      : 0.9,    // distribución radial (0–1)
+  WARP_NOISE       : 0.18,   // curvatura/ruido de trayectoria
+  WARP_TAIL        : 0.65,   // longitud de cola relativa (0–1)
+  WARP_FADE        : 0.85,   // desvanecido global
 
   // Chispas (clic / mantener)
-  SPARK_CLICK_MIN  : 8,
-  SPARK_CLICK_MAX  : 14,
+  SPARK_CLICK_MIN  : 10,
+  SPARK_CLICK_MAX  : 16,
   SPARK_SIZE_MIN   : 4,
   SPARK_SIZE_MAX   : 12,
-  SPARK_PRESS_EVERY: 80,    // ms entre chispas al mantener
+  SPARK_PRESS_EVERY: 75,
 
   // Audio
   AUDIO_VOLUME     : 0.85,
   AUDIO_FADE_STEPS : 6,
-  AUDIO_FADE_DELAY : 30,
+  AUDIO_FADE_DELAY : 28,
+
+  // ====== DEV / TEST ======
+  DEV_HUD        : true,   // ← pon false para ocultarlo
+  DEV_START_AT_MS: null,   // ej: 56000 para arrancar cerca del final
 };
 
-/* Mobile tuning (pantallas chicas) */
+/* Mobile tuning */
 (function tuneForMobile(){
   const isSmall = Math.min(window.innerWidth, window.innerHeight) < 700;
   if(isSmall){
     SETTINGS.STAR_TOTAL = 110;
-    SETTINGS.WARP_LEN_MAX = 180;
-    SETTINGS.RUSH_MAX_SCALE_NEAR = 2.0;
   }
 })();
 
@@ -87,86 +95,88 @@ const root = document.documentElement;
 function setVar(n, v){ root.style.setProperty(n, String(v)); }
 function setVeil(v){ root.style.setProperty("--veil", String(v)); }
 function clamp(n,a,b){ return Math.min(b, Math.max(a, n)); }
-function easeInOutCubic(t){ return t < 0.5 ? 4*t*t*t : 1 - Math.pow(-2*t+2,3)/2; }
+function easeInOutCubic(t){ return t<0.5 ? 4*t*t*t : 1 - Math.pow(-2*t+2,3)/2; }
 function easeOutCubic(t){ return 1 - Math.pow(1 - t, 3); }
 
 /* Timers/Intervals tracking */
-const timeouts = new Set();
-const intervals = new Set();
-function setT(fn, ms){ const id = setTimeout(()=>{timeouts.delete(id); fn();}, ms); timeouts.add(id); return id; }
-function setI(fn, ms){ const id = setInterval(fn, ms); intervals.add(id); return id; }
+const timeouts = new Set(), intervals = new Set();
+function setT(fn, ms){ const id=setTimeout(()=>{timeouts.delete(id); fn();}, ms); timeouts.add(id); return id; }
+function setI(fn, ms){ const id=setInterval(fn, ms); intervals.add(id); return id; }
 function clearAllTimers(){ timeouts.forEach(clearTimeout); intervals.forEach(clearInterval); timeouts.clear(); intervals.clear(); }
 
-/* ============================================================
-   [C] REFERENCIAS DOM
-   ============================================================ */
-const audio  = $("#musica");
-const btn    = $("#playBtn");
-const titulo = $("#titulo");
-const escena = $("#escena");
-const dust   = $("#dust");
-const consts = $("#constellations");
-const halo   = $("#halo");
-
-if(!audio || !btn || !titulo || !escena){
-  console.error("Faltan elementos del DOM requeridos (audio/btn/titulo/escena)");
+/* Formato/parse de tiempos (DEV HUD) */
+function fmt(ms){ const s=Math.max(0,Math.floor(ms/1000)); const m=Math.floor(s/60); const r=s%60; return `${String(m).padStart(2,'0')}:${String(r).padStart(2,'0')}`; }
+function parseTimeToMs(txt){
+  if(!txt) return 0;
+  if(/^\d+(\.\d+)?$/.test(txt)) return Math.round(parseFloat(txt)*1000); // "57.5"
+  const m=txt.split(':').map(Number); if(m.length===2) return (m[0]*60+m[1])*1000;
+  if(m.length===3) return (m[0]*3600+m[1]*60+m[2])*1000;
+  return 0;
 }
 
-/* UI inyectada: hint, skip, flash */
-const hint = document.createElement("div");
-hint.id = "hint";
-hint.textContent = "mueve el mouse ✨ / toca la pantalla";
-document.body.appendChild(hint);
+/* ============================================================
+   [C] REFERENCIAS DOM + UI inyectada
+   ============================================================ */
+const audio=$("#musica"), btn=$("#playBtn"), titulo=$("#titulo"), escena=$("#escena"), dust=$("#dust"), consts=$("#constellations"), halo=$("#halo");
 
-const skipBtn = document.createElement("button");
-skipBtn.id = "skipBtn";
-skipBtn.setAttribute("aria-label","Saltar al siguiente capítulo");
-skipBtn.innerHTML = "⭐ <span>Saltar</span>";
-document.body.appendChild(skipBtn);
+const hint=document.createElement("div"); hint.id="hint"; hint.textContent="mueve el mouse ✨ / toca la pantalla"; document.body.appendChild(hint);
+const skipBtn=document.createElement("button"); skipBtn.id="skipBtn"; skipBtn.setAttribute("aria-label","Saltar al siguiente capítulo"); skipBtn.innerHTML="⭐ <span>Saltar</span>"; document.body.appendChild(skipBtn);
+const flash=document.createElement("div"); flash.id="flash"; document.body.appendChild(flash);
 
-const flash = document.createElement("div");
-flash.id = "flash";
-document.body.appendChild(flash);
+/* Canvas para warp */
+const warpCanvas=document.createElement("canvas"); warpCanvas.id="warpCanvas"; document.body.appendChild(warpCanvas);
+let wctx=null;
+
+/* DEV HUD */
+let devHUD=null;
+function mountDevHUD(){
+  if(!SETTINGS.DEV_HUD) return;
+  devHUD=document.createElement("div");
+  devHUD.id="devHUD";
+  devHUD.innerHTML=`
+    <span class="sp">t=</span><span class="time" id="hudTime">00:00</span>
+    <input id="hudInput" placeholder="mm:ss o s" />
+    <button id="hudGo">Ir</button>
+    <button id="hudMinus">-1s</button>
+    <button id="hudPlus">+1s</button>
+    <button id="hudReset">Inicio</button>
+    <button id="hudHide">×</button>
+  `;
+  document.body.appendChild(devHUD);
+  $("#hudHide").onclick=()=>{ devHUD.remove(); };
+  $("#hudGo").onclick=()=> jumpTo(parseTimeToMs($("#hudInput").value||"0"));
+  $("#hudMinus").onclick=()=> jumpRel(-1000);
+  $("#hudPlus").onclick=()=> jumpRel(1000);
+  $("#hudReset").onclick=()=> jumpTo(0);
+}
 
 /* ============================================================
-   [D] ESTRELLAS / NEBULOSAS / CAPAS
+   [D] ESTRELLAS / NEBULOSAS
    ============================================================ */
-function createStars(total = SETTINGS.STAR_TOTAL){
-  const FAR  = Math.floor(total * SETTINGS.STAR_FAR);
-  const MID  = Math.floor(total * SETTINGS.STAR_MID);
-  const NEAR = total - FAR - MID;
-
-  const mk = layer=>{
-    const s = document.createElement("div");
-    s.className = `star ${layer}`;
-
-    // Posición inicial (guardamos en dataset para usar en warp SIN reflow)
-    const y = Math.random() * window.innerHeight;
-    const x = Math.random() * window.innerWidth;
-    s.dataset.x = x.toFixed(2);
-    s.dataset.y = y.toFixed(2);
-    s.style.top  = y + "px";
-    s.style.left = x + "px";
-
-    // twinkle sólo opacidad
-    s.style.animationDuration = (2 + Math.random()*3) + "s";
-
+function createStars(total){
+  const FAR=Math.floor(total*SETTINGS.STAR_FAR), MID=Math.floor(total*SETTINGS.STAR_MID), NEAR=total-FAR-MID;
+  const mk=layer=>{
+    const s=document.createElement("div");
+    s.className=`star ${layer}`;
+    const y=Math.random()*window.innerHeight, x=Math.random()*window.innerWidth;
+    s.dataset.x=x.toFixed(2); s.dataset.y=y.toFixed(2);
+    s.style.top=y+"px"; s.style.left=x+"px";
+    s.style.animationDuration=(2+Math.random()*3)+"s";
     document.body.appendChild(s);
-    setTimeout(()=>{ s.style.opacity = 1; }, 900 + Math.random()*1200);
+    setTimeout(()=>{ s.style.opacity=1; }, 900+Math.random()*1200);
   };
-
-  for(let i=0;i<FAR;i++)  mk("far");
-  for(let i=0;i<MID;i++)  mk("mid");
+  for(let i=0;i<FAR;i++) mk("far");
+  for(let i=0;i<MID;i++) mk("mid");
   for(let i=0;i<NEAR;i++) mk("near");
 }
 
 let sparkleTimer=null;
 function startSparkle(){
-  sparkleTimer = setI(()=>{
-    const stars = $$(".star"); if(!stars.length) return;
-    const n = 4 + Math.floor(Math.random()*3);
+  sparkleTimer=setI(()=>{
+    const stars=$$(".star"); if(!stars.length) return;
+    const n=4+Math.floor(Math.random()*3);
     for(let i=0;i<n;i++){
-      const s = stars[Math.floor(Math.random()*stars.length)];
+      const s=stars[Math.floor(Math.random()*stars.length)];
       if(!s) continue;
       s.classList.add("sparkle");
       setTimeout(()=> s.classList.remove("sparkle"), 650);
@@ -178,50 +188,40 @@ function stopSparkle(){ if(sparkleTimer){ clearInterval(sparkleTimer); intervals
 function ensureNebulas(){
   if(!$$(".nebula").length){
     [["blue","pos-1"],["pink","pos-2"],["gold","pos-3"]].forEach(([tone,pos])=>{
-      const n = document.createElement("div");
-      n.className = `nebula ${tone} ${pos}`;
-      document.body.appendChild(n);
+      const n=document.createElement("div"); n.className=`nebula ${tone} ${pos}`; document.body.appendChild(n);
     });
   }
 }
-function showNebulas(){
-  ensureNebulas();
-  $$(".nebula").forEach((n,i)=> setT(()=> n.classList.add("visible"), 5000 + i*1200));
-}
+function showNebulas(){ ensureNebulas(); $$(".nebula").forEach((n,i)=> setT(()=> n.classList.add("visible"), 5000+i*1200)); }
 
-/* Fugaces */
 function shootingStar(afterMs){
   setT(()=>{
-    const s = document.createElement("div");
-    s.className = "shooting-star";
-    s.style.left = (Math.random()*window.innerWidth) + "px";
+    const s=document.createElement("div");
+    s.className="shooting-star";
+    s.style.left=(Math.random()*window.innerWidth)+"px";
     document.body.appendChild(s);
     setTimeout(()=> s.remove(), 2100);
   }, afterMs);
 }
 
-/* Constelaciones */
-function drawConstellation({top, left, length, angleDeg, life=3800}){
-  const line = document.createElement("div");
-  line.className = "const-line";
-  line.style.top = top + "px";
-  line.style.left = left + "px";
-  line.style.width = length + "px";
-  line.style.transform = `rotate(${angleDeg}deg) scaleX(0)`;
+function drawConstellation({top,left,length,angleDeg,life=3800}){
+  const line=document.createElement("div");
+  line.className="const-line";
+  line.style.top=top+"px"; line.style.left=left+"px"; line.style.width=length+"px";
+  line.style.transform=`rotate(${angleDeg}deg) scaleX(0)`;
   consts.appendChild(line);
   requestAnimationFrame(()=> line.classList.add("draw"));
   setTimeout(()=> line.classList.add("fade"), life);
-  setTimeout(()=> line.remove(), life + 2200);
+  setTimeout(()=> line.remove(), life+2200);
 }
 
-/* Polvo */
-function activateDust(){ if(dust) dust.classList.add("visible"); }
+function activateDust(){ dust?.classList.add("visible"); }
 
 /* ============================================================
-   [E] TEXTOS / HALO
+   [E] TEXTOS / HALO / SUSURROS
    ============================================================ */
-function showTitle(){  titulo.classList.add("show"); }
-function showSceneMsg(){ escena.textContent = "🌌 Nuestro viaje comienza..."; escena.classList.add("show"); }
+function showTitle(){ titulo.classList.add("show"); }
+function showSceneMsg(){ escena.textContent="🌌 Nuestro viaje comienza..."; escena.classList.add("show"); }
 function fadeOutTexts(){ titulo.classList.add("fade-out"); escena.classList.add("fade-out"); const w=$("#whisper"); if(w) w.classList.add("hide"); }
 
 function startHalo(){
@@ -231,16 +231,15 @@ function startHalo(){
   setT(()=>{ halo.classList.add("boost"); setTimeout(()=> halo.classList.remove("boost"), 1200); }, 40000);
 }
 
-/* Susurros */
-const WHISPERS = ["Cierra los ojos…","Respira conmigo…","Quédate aquí un momento…"];
+const WHISPERS=["Cierra los ojos…","Respira conmigo…","Quédate aquí un momento…"];
 let whisperTimer=null;
 function startWhispers(){
-  let w = $("#whisper"); if(!w){ w=document.createElement("span"); w.id="whisper"; escena.appendChild(w); }
+  let w=$("#whisper"); if(!w){ w=document.createElement("span"); w.id="whisper"; escena.appendChild(w); }
   let idx=0;
-  const showNext = ()=>{
+  const showNext=()=>{
     if(!w) return;
     w.classList.remove("show"); w.classList.add("hide");
-    setTimeout(()=>{ w.textContent = WHISPERS[idx%WHISPERS.length]; idx++; w.classList.remove("hide"); w.classList.add("show"); }, 400);
+    setTimeout(()=>{ w.textContent=WHISPERS[idx%WHISPERS.length]; idx++; w.classList.remove("hide"); w.classList.add("show"); }, 400);
   };
   showNext(); whisperTimer=setI(showNext, 9000);
 }
@@ -249,7 +248,6 @@ function stopWhispers(){ if(whisperTimer){ clearInterval(whisperTimer); interval
 /* ============================================================
    [F] INTERACCIÓN: PARALLAX + CHISPAS
    ============================================================ */
-/* Parallax nebulosas */
 let parallaxActive=false, targetX=0, targetY=0, px=0, py=0;
 const easeParallax=0.06;
 function onMouseMove(e){
@@ -259,259 +257,282 @@ function onMouseMove(e){
 }
 function parallaxLoop(){
   if(parallaxActive){
-    px += (targetX-px)*easeParallax;
-    py += (targetY-py)*easeParallax;
+    px+=(targetX-px)*easeParallax; py+=(targetY-py)*easeParallax;
     const layers=$$(".nebula");
     layers.forEach((n,i)=>{
-      const strength=(i+1)*6;
-      n.style.transform=`translate(${-px*strength}px, ${-py*strength}px)`;
+      const s=(i+1)*6; n.style.transform=`translate(${-px*s}px, ${-py*s}px)`;
     });
   }
   requestAnimationFrame(parallaxLoop);
 }
-window.addEventListener("mousemove", onMouseMove);
-parallaxLoop();
+window.addEventListener("mousemove", onMouseMove); parallaxLoop();
 
-/* Clic/Presión: ráfaga + lluvia */
 function spawnSpark(x,y,big=false){
-  const p=document.createElement("div");
-  p.className="spark-pop";
-  const size = (big ? SETTINGS.SPARK_SIZE_MIN+2 : SETTINGS.SPARK_SIZE_MIN) + Math.random()*(SETTINGS.SPARK_SIZE_MAX - SETTINGS.SPARK_SIZE_MIN);
+  const p=document.createElement("div"); p.className="spark-pop";
+  const size=(big?SETTINGS.SPARK_SIZE_MIN+2:SETTINGS.SPARK_SIZE_MIN)+Math.random()*(SETTINGS.SPARK_SIZE_MAX-SETTINGS.SPARK_SIZE_MIN);
   p.style.width=size+"px"; p.style.height=size+"px";
-  p.style.left=(x + (Math.random()*14-7))+"px";
-  p.style.top =(y + (Math.random()*14-7))+"px";
-  document.body.appendChild(p);
-  setTimeout(()=> p.remove(), 820);
+  p.style.left=(x+(Math.random()*14-7))+"px"; p.style.top =(y+(Math.random()*14-7))+"px";
+  document.body.appendChild(p); setTimeout(()=> p.remove(), 820);
 }
-function burst(x,y){
-  const n = SETTINGS.SPARK_CLICK_MIN + Math.floor(Math.random()*(SETTINGS.SPARK_CLICK_MAX - SETTINGS.SPARK_CLICK_MIN + 1));
-  for(let i=0;i<n;i++) setTimeout(()=> spawnSpark(x,y,true), i*18);
-}
+function burst(x,y){ const n=SETTINGS.SPARK_CLICK_MIN+Math.floor(Math.random()*(SETTINGS.SPARK_CLICK_MAX-SETTINGS.SPARK_CLICK_MIN+1)); for(let i=0;i<n;i++) setTimeout(()=> spawnSpark(x,y,true), i*18); }
 let pressInterval=null;
-function onMouseDown(e){
-  burst(e.clientX, e.clientY);
-  if(pressInterval) clearInterval(pressInterval);
-  pressInterval = setInterval(()=> spawnSpark(e.clientX,e.clientY,false), SETTINGS.SPARK_PRESS_EVERY);
-}
+function onMouseDown(e){ burst(e.clientX,e.clientY); if(pressInterval) clearInterval(pressInterval); pressInterval=setInterval(()=> spawnSpark(e.clientX,e.clientY,false), SETTINGS.SPARK_PRESS_EVERY); }
 function onMouseUp(){ if(pressInterval){ clearInterval(pressInterval); pressInterval=null; } }
 window.addEventListener("mousedown", onMouseDown);
 window.addEventListener("mouseup", onMouseUp);
-window.addEventListener("click", e=> burst(e.clientX, e.clientY)); // click suelto
+window.addEventListener("click", e=> burst(e.clientX,e.clientY));
 
 /* ============================================================
    [G] RAMP / HINT / SKIP
    ============================================================ */
 function rampBrightness(){ SETTINGS.RAMP.forEach(step=> setT(()=> setVeil(step.veil), step.t)); }
-
-function scheduleHint(){
-  setT(()=> hint.classList.add("show"), SETTINGS.T_DUST_MSG_MS);
-  setT(()=> hint.classList.remove("show"), SETTINGS.T_DUST_MSG_MS + 7000); // ~15–22s
-}
-function scheduleSkip(){
-  setT(()=>{
-    root.classList.add("skip-visible");
-    skipBtn.addEventListener("click", onSkip);
-  }, 35000);
-}
+function scheduleHint(){ setT(()=> hint.classList.add("show"), SETTINGS.T_DUST_MSG_MS); setT(()=> hint.classList.remove("show"), SETTINGS.T_DUST_MSG_MS+7000); }
+function scheduleSkip(){ setT(()=>{ root.classList.add("skip-visible"); skipBtn.addEventListener("click", onSkip); }, 35000); }
 function onSkip(){ doBoom(true); }
 
 /* ============================================================
-   [H] RUSH (40–55s): escala por capas
+   [H] RUSH (40–55s)
    ============================================================ */
 let rushRAF=null;
 function startRush(){
   root.classList.add("rush");
-  const DURATION = Math.max(1, (SETTINGS.T_WARP_START_MS - SETTINGS.T_RUSH_START_MS));
-  const t0 = performance.now();
-
-  // inicial
-  setVar("--rush-scale-near", 1);
-  setVar("--rush-scale-mid",  1);
-  setVar("--rush-scale-far",  1);
-  setVar("--rush-opacity",    0.95);
-
-  function step(now){
-    const t = clamp((now - t0) / DURATION, 0, 1);
-    const e = easeInOutCubic(t);
-
-    setVar("--rush-scale-near", (1 + e*(SETTINGS.RUSH_MAX_SCALE_NEAR - 1)).toFixed(3));
-    setVar("--rush-scale-mid",  (1 + e*(SETTINGS.RUSH_MAX_SCALE_MID  - 1)).toFixed(3));
-    setVar("--rush-scale-far",  (1 + e*(SETTINGS.RUSH_MAX_SCALE_FAR  - 1)).toFixed(3));
-    setVar("--rush-opacity",    (0.95 + e*0.05).toFixed(3));
-    setVar("--rush-translate",  `${(e*6)|0}px`);
-
-    // micro-boost visual al final del rush
-    if (t > 0.85) {
-      setVar("--rush-opacity", (0.98 + (t-0.85)*0.2).toFixed(3));
-    }
-
-    if(t < 1) rushRAF = requestAnimationFrame(step);
-    else rushRAF = null;
-  }
-  rushRAF = requestAnimationFrame(step);
+  const D=Math.max(1,(SETTINGS.T_WARP_START_MS-SETTINGS.T_RUSH_START_MS));
+  const t0=performance.now();
+  setVar("--rush-scale-near",1); setVar("--rush-scale-mid",1); setVar("--rush-scale-far",1); setVar("--rush-opacity",0.95);
+  const step=now=>{
+    const t=clamp((now-t0)/D,0,1), e=easeInOutCubic(t);
+    setVar("--rush-scale-near",(1+e*(SETTINGS.RUSH_MAX_SCALE_NEAR-1)).toFixed(3));
+    setVar("--rush-scale-mid", (1+e*(SETTINGS.RUSH_MAX_SCALE_MID -1)).toFixed(3));
+    setVar("--rush-scale-far", (1+e*(SETTINGS.RUSH_MAX_SCALE_FAR -1)).toFixed(3));
+    setVar("--rush-opacity",   (0.95+e*0.05).toFixed(3));
+    if(t<1) rushRAF=requestAnimationFrame(step); else rushRAF=null;
+  };
+  rushRAF=requestAnimationFrame(step);
 }
 
 /* ============================================================
-   [I] WARP (56–58.5s): estelas + empuje radial (sin reflow)
+   [I] WARP CANVAS (58.8–60.0s, ~1.2s)
    ============================================================ */
-let warpRAF=null;
-function startWarp(){
-  const stars = Array.from($$(".star"));
-  if(!stars.length) return;
+let warpRAF=null, warpStartTime=0, particles=[];
+function prepareCanvas(){
+  const dpr=window.devicePixelRatio||1;
+  warpCanvas.width = Math.floor(window.innerWidth*dpr);
+  warpCanvas.height= Math.floor(window.innerHeight*dpr);
+  warpCanvas.style.width=window.innerWidth+"px";
+  warpCanvas.style.height=window.innerHeight+"px";
+  wctx=warpCanvas.getContext("2d");
+  wctx.setTransform(dpr,0,0,dpr,0,0);
+  wctx.globalCompositeOperation="lighter";
+}
+function startWarpCanvas(){
+  prepareCanvas();
+  warpCanvas.style.display="block";
+  // Ocultamos estrellas DOM para evitar “dureza”
+  $$(".star").forEach(s=> s.style.opacity=0.15);
 
-  const cx = window.innerWidth  / 2;
-  const cy = window.innerHeight / 2;
-
-  // Prepara meta con datos ya guardados (dataset → sin reflow)
-  const meta = stars.map(s=>{
-    const x = parseFloat(s.dataset.x || 0);
-    const y = parseFloat(s.dataset.y || 0);
-    const dx = x - cx;
-    const dy = y - cy;
-    const dist = Math.hypot(dx, dy) || 1;
-    const angle = Math.atan2(dy, dx);
-    s.classList.add("no-twinkle", "streak");
-    s.style.height = SETTINGS.WARP_LEN_BASE + "px";
-    // setear rotación 1 vez; luego sólo translate3d + height
-    s.style.transform = `translate3d(0,0,0) rotate(${angle}rad)`;
-    return { el:s, dx, dy, dist };
+  const cx=window.innerWidth/2, cy=window.innerHeight/2;
+  const N=SETTINGS.WARP_PARTICLES;
+  particles=new Array(N).fill(0).map(()=> {
+    const a=Math.random()*Math.PI*2;
+    const r=(Math.random()**0.9)*Math.min(cx,cy)*SETTINGS.WARP_SPREAD;
+    const x=cx + Math.cos(a)*r;
+    const y=cy + Math.sin(a)*r;
+    const speed= (0.9+Math.random()*0.6) * Math.max(window.innerWidth, window.innerHeight)/SETTINGS.WARP_DURATION_MS; // px/ms
+    const noise=(Math.random()*2-1)*SETTINGS.WARP_NOISE; // curvita leve
+    const hue= 200 + Math.random()*40; // azulados
+    return {x,y,a,speed,noise,hue};
   });
 
-  const t0 = performance.now();
-  const D = SETTINGS.WARP_DURATION_MS;
+  warpStartTime=performance.now();
+  const tail=SETTINGS.WARP_TAIL, fade=SETTINGS.WARP_FADE;
 
-  function tick(now){
-    const t = Math.min(1, (now - t0) / D);
-    const e = easeOutCubic(t);
+  const tick=(now)=>{
+    const t=clamp((now-warpStartTime)/SETTINGS.WARP_DURATION_MS,0,1);
+    const e=easeOutCubic(t);
+    wctx.clearRect(0,0,warpCanvas.width, warpCanvas.height);
 
-    const push = Math.max(window.innerWidth, window.innerHeight) * SETTINGS.WARP_PUSH_FACTOR;
-    const len  = SETTINGS.WARP_LEN_BASE + e * (SETTINGS.WARP_LEN_MAX - SETTINGS.WARP_LEN_BASE);
+    for(const p of particles){
+      // dirección base + ligera curvatura (natural)
+      const ang = p.a + (e-0.5)*p.noise;
+      const vx = Math.cos(ang), vy = Math.sin(ang);
+      const dist = e * p.speed * SETTINGS.WARP_DURATION_MS * 0.8;
+      const x2 = p.x + vx*dist;
+      const y2 = p.y + vy*dist;
 
-    for(const m of meta){
-      const nx = m.dx / m.dist;
-      const ny = m.dy / m.dist;
-      const tx = nx * e * push;
-      const ty = ny * e * push;
-      // sólo actualizamos translate3d y height (barato para GPU)
-      m.el.style.transform = `translate3d(${tx}px, ${ty}px, 0) ${m.el.style.transform.replace(/.*rotate/,'rotate')}`;
-      m.el.style.height = `${len}px`;
+      const x1 = x2 - vx*dist*tail;
+      const y1 = y2 - vy*dist*tail;
+
+      // gradiente suave por partícula
+      const grad=wctx.createLinearGradient(x1,y1,x2,y2);
+      grad.addColorStop(0, `rgba(180,200,255,${0.0})`);
+      grad.addColorStop(0.4,`rgba(190,210,255,${0.22*fade})`);
+      grad.addColorStop(1, `rgba(255,255,255,${0.60*fade})`);
+
+      wctx.strokeStyle=grad;
+      wctx.lineWidth=1.6;
+      wctx.beginPath(); wctx.moveTo(x1,y1); wctx.lineTo(x2,y2); wctx.stroke();
     }
 
-    if(t < 1) warpRAF = requestAnimationFrame(tick);
-    else warpRAF = null;
-  }
-
-  if(warpRAF) cancelAnimationFrame(warpRAF);
-  warpRAF = requestAnimationFrame(tick);
+    if(t<1) warpRAF=requestAnimationFrame(tick);
+    else{ warpRAF=null; }
+  };
+  warpRAF=requestAnimationFrame(tick);
+}
+function stopWarpCanvas(){
+  warpCanvas.style.display="none";
+  wctx && wctx.clearRect(0,0,warpCanvas.width, warpCanvas.height);
+  $$(".star").forEach(s=> s.style.opacity=""); // restaurar
 }
 
-/* Suave preparación visual antes del boom */
-function preBoom(){ root.classList.add("preboom"); }
-
 /* ============================================================
-   [J] BOOM (59s): flash + viñeta + blackout (sin redirección)
+   [J] BOOM (60.0s)
    ============================================================ */
 let boomDone=false;
 async function doBoom(fromSkip=false){
   if(boomDone) return; boomDone=true;
 
-  // detener efectos en curso
+  // limpiar efectos
   window.removeEventListener("mousedown", onMouseDown);
   window.removeEventListener("mouseup", onMouseUp);
   stopSparkle(); stopWhispers();
 
-  // Fade de audio
+  // apagar warp canvas si estuviera activo
+  if(warpRAF) cancelAnimationFrame(warpRAF);
+  stopWarpCanvas();
+
+  // Fade audio
   try{
-    const startVol = audio.volume;
+    const startVol=audio.volume;
     for(let i=0;i<=SETTINGS.AUDIO_FADE_STEPS;i++){
-      const f = 1 - (i/SETTINGS.AUDIO_FADE_STEPS);
-      audio.volume = clamp(startVol * f, 0, 1);
+      const f=1-(i/SETTINGS.AUDIO_FADE_STEPS);
+      audio.volume=clamp(startVol*f,0,1);
       // eslint-disable-next-line no-await-in-loop
       await wait(SETTINGS.AUDIO_FADE_DELAY);
     }
     audio.pause();
   }catch{}
 
-  // Flash + colapso + blackout
+  // Flash + colapso
   setVar("--flash-opacity", 1);
-  setTimeout(()=> setVar("--flash-opacity", 0), parseInt(getComputedStyle(root).getPropertyValue("--flash-duration")) || 120);
+  setTimeout(()=> setVar("--flash-opacity", 0), parseInt(getComputedStyle(root).getPropertyValue("--flash-duration")) || 140);
   root.classList.add("boom");
 
-  // Nos quedamos en negro. Cuando exista lalaland.html:
+  // Queda en negro. Cuando exista la segunda escena:
   // window.location.href = "lalaland.html";
 }
 
 /* ============================================================
-   [K] TIMELINE PRINCIPAL
+   [K] SCHEDULER con OFFSET (para DEV HUD)
    ============================================================ */
-function startTimeline(){
-  createStars(SETTINGS.STAR_TOTAL);
-  startSparkle();
+function scheduleAt(absMs, offsetMs, fn){ const delay=absMs-offsetMs; if(delay<=0){ try{fn();}catch{} return; } setT(fn, delay); }
 
-  showNebulas();
-  setT(showTitle, SETTINGS.T_SHOW_TITLE_MS);
+function rampWithOffset(offsetMs){ SETTINGS.RAMP.forEach(step=> scheduleAt(step.t, offsetMs, ()=> setVeil(step.veil))); }
 
-  setT(()=>{ parallaxActive=true; }, SETTINGS.T_INTERACTIONS_MS);
-  setT(startHalo, SETTINGS.T_HALO_ON_MS);
+function resetVisuals(){
+  clearAllTimers();
+  if(rushRAF) cancelAnimationFrame(rushRAF);
+  if(warpRAF) cancelAnimationFrame(warpRAF);
+  stopWarpCanvas();
 
-  setT(activateDust, SETTINGS.T_DUST_MSG_MS);
-  setT(showSceneMsg, SETTINGS.T_DUST_MSG_MS);
-  setT(startWhispers, SETTINGS.T_WHISPERS_MS);
-
-  setT(()=> drawConstellation({
-    top: window.innerHeight*0.28, left: window.innerWidth*0.18,
-    length: window.innerWidth*0.22, angleDeg: 12
-  }), SETTINGS.T_CONST_1_MS);
-
-  setT(()=> drawConstellation({
-    top: window.innerHeight*0.62, left: window.innerWidth*0.58,
-    length: window.innerWidth*0.18, angleDeg: -18
-  }), SETTINGS.T_CONST_2_MS);
-
-  shootingStar(SETTINGS.T_SHOOT_1_MS);
-  shootingStar(SETTINGS.T_SHOOT_2_MS);
-
-  scheduleHint();
-  scheduleSkip();
-
-  setT(()=>{ fadeOutTexts(); stopWhispers(); }, SETTINGS.T_TEXTS_FADE_MS);
-
-  // Rush + Warp + Boom
-  setT(startRush, SETTINGS.T_RUSH_START_MS);
-  setT(startWarp, SETTINGS.T_WARP_START_MS);
-  setT(preBoom,   SETTINGS.T_PREBOOM_MS);
-  setT(()=> doBoom(false), SETTINGS.T_BOOM_MS);
+  $$(".star, .shooting-star, .const-line, .spark-pop").forEach(n=> n.remove());
+  $("#dust")?.classList.remove("visible");
+  $("#halo")?.classList.remove("on","boost");
+  document.documentElement.classList.remove("rush","boom","skip-visible");
+  setVar("--flash-opacity", 0);
+  if(titulo){ titulo.classList.remove("show","fade-out"); }
+  if(escena){
+    escena.classList.remove("show","fade-out");
+    const w=$("#whisper"); if(w) w.remove();
+    escena.textContent="";
+  }
+  setVeil(1);
+  stopWhispers(); stopSparkle();
+  boomDone=false;
 }
 
+function startTimelineWithOffset(offsetMs){
+  // Estrellas y capas base
+  createStars(SETTINGS.STAR_TOTAL);
+  startSparkle();
+  showNebulas();
+
+  scheduleAt(SETTINGS.T_SHOW_TITLE_MS, offsetMs, showTitle);
+  scheduleAt(SETTINGS.T_INTERACTIONS_MS, offsetMs, ()=>{ parallaxActive=true; });
+  scheduleAt(SETTINGS.T_HALO_ON_MS, offsetMs, startHalo);
+  scheduleAt(SETTINGS.T_DUST_MSG_MS, offsetMs, activateDust);
+  scheduleAt(SETTINGS.T_DUST_MSG_MS, offsetMs, showSceneMsg);
+  scheduleAt(SETTINGS.T_WHISPERS_MS, offsetMs, startWhispers);
+
+  scheduleAt(SETTINGS.T_CONST_1_MS, offsetMs, ()=> drawConstellation({
+    top: window.innerHeight*0.28, left: window.innerWidth*0.18,
+    length: window.innerWidth*0.22, angleDeg:12
+  }));
+  scheduleAt(SETTINGS.T_CONST_2_MS, offsetMs, ()=> drawConstellation({
+    top: window.innerHeight*0.62, left: window.innerWidth*0.58,
+    length: window.innerWidth*0.18, angleDeg:-18
+  }));
+
+  scheduleAt(SETTINGS.T_SHOOT_1_MS, offsetMs, ()=> shootingStar(0));
+  scheduleAt(SETTINGS.T_SHOOT_2_MS, offsetMs, ()=> shootingStar(0));
+
+  scheduleAt(SETTINGS.T_TEXTS_FADE_MS, offsetMs, ()=>{ fadeOutTexts(); stopWhispers(); });
+
+  // Rush
+  scheduleAt(SETTINGS.T_RUSH_START_MS, offsetMs, startRush);
+
+  // Warp Canvas corto (rápido y natural)
+  scheduleAt(SETTINGS.T_WARP_START_MS, offsetMs, startWarpCanvas);
+
+  // Preboom y Boom
+  scheduleAt(SETTINGS.T_PREBOOM_MS, offsetMs, ()=> root.classList.add("preboom"));
+  scheduleAt(SETTINGS.T_BOOM_MS, offsetMs, ()=> doBoom(false));
+
+  // Rampa con offset
+  rampWithOffset(offsetMs);
+}
+
+/* Saltar a tiempo (DEV) */
+function jumpTo(ms){
+  resetVisuals();
+  // audio sync
+  try{ audio.currentTime = Math.max(0, ms/1000); }catch{}
+  // reconstruir
+  startTimelineWithOffset(ms);
+}
+function jumpRel(delta){ const ms=Math.max(0, (audio.currentTime*1000|0) + delta); jumpTo(ms); }
+
 /* ============================================================
-   [L] PLAY HANDLER + TECLADO + LIMPIEZA
+   [L] TIMELINE NORMAL
+   ============================================================ */
+function startTimeline(){ startTimelineWithOffset(0); }
+
+/* ============================================================
+   [M] PLAY, DEV HUD y teclado
    ============================================================ */
 btn.addEventListener("click", async ()=>{
-  audio.load();
-  audio.volume = SETTINGS.AUDIO_VOLUME;
+  audio.load(); audio.volume=SETTINGS.AUDIO_VOLUME;
   try{
-    await audio.play();
-    btn.style.display = "none";
-    // Rampa de luz y timeline
-    SETTINGS.RAMP.forEach(step=> setT(()=> setVeil(step.veil), step.t));
-    startTimeline();
+    await audio.play(); btn.style.display="none";
+    rampBrightness();
+    mountDevHUD();
+    if(SETTINGS.DEV_START_AT_MS!=null){ jumpTo(SETTINGS.DEV_START_AT_MS); }
+    else{ startTimeline(); }
+    // HUD updater
+    if(SETTINGS.DEV_HUD){
+      setI(()=>{ const t=$("#hudTime"); if(t) t.textContent=fmt(audio.currentTime*1000); }, 200);
+    }
   }catch(err){
     console.error("Audio bloqueado", err);
     alert("Toca de nuevo para iniciar el audio ✨");
   }
 });
 
-/* Teclado: Space/Enter → iniciar; S → saltar (si visible) */
-window.addEventListener("keydown", (e)=>{
-  if((e.code==="Space" || e.code==="Enter") && btn.style.display!=="none"){
-    btn.click();
-  }
-  if(e.code==="KeyS" && root.classList.contains("skip-visible")){
-    onSkip();
-  }
+window.addEventListener("keydown",(e)=>{
+  if((e.code==="Space"||e.code==="Enter") && btn.style.display!=="none"){ btn.click(); }
+  if(e.code==="KeyS" && root.classList.contains("skip-visible")) onSkip();
 });
 
-/* Limpieza al salir/recargar */
+/* Limpieza */
 window.addEventListener("beforeunload", ()=>{
   clearAllTimers();
   if(rushRAF) cancelAnimationFrame(rushRAF);
