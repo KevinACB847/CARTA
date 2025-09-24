@@ -5,7 +5,7 @@ const playBtn = document.getElementById("playBtn");
 const starCanvas = document.getElementById("starCanvas");
 const ctx = starCanvas.getContext("2d");
 
-// Ajustar canvas
+// Resize canvas
 function resizeCanvas() {
   starCanvas.width = window.innerWidth;
   starCanvas.height = window.innerHeight;
@@ -13,26 +13,24 @@ function resizeCanvas() {
 window.addEventListener("resize", resizeCanvas);
 resizeCanvas();
 
-// Detectar móvil
+// Detect mobile
 const isMobile = window.innerWidth < 768;
 
-// Estrellas PC (divs)
+// Crear estrellas en PC
 function createStarDivs() {
   for (let i = 0; i < 120; i++) {
     const star = document.createElement("div");
-    star.style.position = "absolute";
-    star.style.width = "2px";
-    star.style.height = "2px";
-    star.style.background = "white";
-    star.style.borderRadius = "50%";
+    star.className = "star";
     star.style.top = Math.random() * window.innerHeight + "px";
     star.style.left = Math.random() * window.innerWidth + "px";
-    star.style.opacity = Math.random();
+    star.style.animationDuration = (2 + Math.random()*3) + "s";
     document.body.appendChild(star);
+    // fade-in de cada estrella con delay
+    setTimeout(() => { star.style.opacity = 1; }, 1000 + Math.random()*2000);
   }
 }
 
-// Estrellas móviles (canvas)
+// Estrellas móviles con canvas
 let stars = [];
 function initCanvasStars() {
   stars = [];
@@ -60,26 +58,40 @@ function drawStars() {
   requestAnimationFrame(drawStars);
 }
 
-// Configuración inicial
-if (isMobile) {
-  initCanvasStars();
-  drawStars();
-} else {
-  createStarDivs();
+// Mostrar nebulosas poco a poco
+function fadeInNebulas() {
+  document.querySelectorAll(".nebula").forEach((nebula, i) => {
+    setTimeout(() => { nebula.style.opacity = 1; }, 2000 + i*1000);
+  });
 }
 
-// Reproducir música
+// Play
 playBtn.addEventListener("click", () => {
   audio.load();
   audio.volume = 0.8;
   audio.play().then(() => {
-    titulo.style.opacity = 1;
-    titulo.style.transform = "scale(1)";
     playBtn.style.display = "none";
+
+    // 1) Estrellas
+    if (isMobile) {
+      initCanvasStars();
+      drawStars();
+    } else {
+      createStarDivs();
+    }
+
+    // 2) Nebulosas
+    fadeInNebulas();
+
+    // 3) Título
+    setTimeout(() => {
+      titulo.style.opacity = 1;
+      titulo.style.transform = "scale(1)";
+    }, 3000);
   }).catch(err => console.error("Error audio:", err));
 });
 
-// Estrellas fugaces solo en PC
+// Estrellas fugaces en PC
 function shootingStar(delay) {
   if (isMobile) return;
   setTimeout(() => {
@@ -94,10 +106,9 @@ shootingStar(10000);
 shootingStar(25000);
 shootingStar(45000);
 
-// Escenas sincronizadas
+// Texto secundario según la música
 audio.addEventListener("timeupdate", () => {
   const t = audio.currentTime;
-  console.log("segundos:", t.toFixed(1)); // debug
   if (t >= 15 && t < 50) {
     escenaDiv.style.opacity = 1;
     escenaDiv.textContent = "🌌 Nuestro viaje comienza...";
@@ -105,4 +116,5 @@ audio.addEventListener("timeupdate", () => {
     escenaDiv.style.opacity = 0;
   }
 });
+
 
