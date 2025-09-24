@@ -16,12 +16,9 @@
     <div id="escena"></div>
   </div>
 
-  <!-- Botón inicial -->
-  <button id="playBtn">▶ Iniciar</button>
-
-  <!-- Capas de efectos -->
-  <div id="constellations"></div>  <!-- Líneas de constelaciones creadas por JS -->
-  <div id="dust"></div>            <!-- Polvo estelar, JS activa .visible -->
+  <!-- Capas de efectos (no capturan clics) -->
+  <div id="constellations"></div>  <!-- Constelaciones generadas por JS -->
+  <div id="dust"></div>            <!-- Polvo estelar (JS activa .visible) -->
   <div id="halo"></div>            <!-- Halo central que “respira” -->
 
   <!-- Nebulosas / galaxia -->
@@ -32,10 +29,14 @@
   <!-- Velo global de oscuridad (rampa de luz controlada por JS) -->
   <div id="veil"></div>
 
+  <!-- Botón inicial (va al final para evitar que algo lo tape) -->
+  <button id="playBtn">▶ Iniciar</button>
+
   <!-- Coreografía -->
   <script src="JS/intro.js"></script>
 </body>
 </html>
+
 
 
 
