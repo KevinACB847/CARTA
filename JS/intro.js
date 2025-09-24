@@ -1,8 +1,9 @@
 /**************************************************************
- * INTRO LA LA LAND — JS (Canvas Warp + DEV HUD)
+ * INTRO LA LA LAND — JS (Canvas Warp + DEV HUD + Beats 54–59s)
  * - RUSH 40–55s (escala por capas)
- * - WARP 58.8–60.0s (Canvas fluido ~1.2s)
- * - BOOM 60.0s (flash + blackout)
+ * - BEATS 54–59s (14 destellos cerca del título)
+ * - WARP 58.8–~60s (Canvas fluido ~1.2s)
+ * - BOOM ~60s (flash + blackout, levemente retrasado)
  * - Tester de tiempo: ver y saltar a cualquier marca
  * - Clic = ráfaga | Mantener = lluvia
  **************************************************************/
@@ -22,14 +23,20 @@ const SETTINGS = {
   T_SHOOT_1_MS      : 29000,
   T_SHOOT_2_MS      : 44000,
 
-  // Texto se va entre 56–58s (fade 2.0s en CSS)
+  // Texto se va entre 56–58s
   T_TEXTS_FADE_MS   : 56000,
 
-  // Rush → Warp → Boom (final dramático 59–60)
+  // Rush → Warp → Boom
   T_RUSH_START_MS   : 40000,
   T_WARP_START_MS   : 58800,  // 58.8s (Canvas warp ~1.2s)
-  T_PREBOOM_MS      : 59500,  // 59.5s (tensión)
-  T_BOOM_MS         : 60000,  // 60.0s (flash+negro)
+  T_PREBOOM_MS      : 59500,  // 59.5s (tensión previa)
+  T_BOOM_MS         : 60120,  // BOOM levemente más tarde (ajusta aquí)
+
+  // Beats sincronizados alrededor del título (54–59s)
+  T_STAR_BEATS_START_MS : 54000, // inicio de “tu tu…”
+  STAR_BEATS_COUNT      : 14,    // 14 golpes
+  STAR_BEATS_WINDOW_MS  : 5000,  // 54.0 → 59.0s (reparte 14)
+  STAR_BEAT_DURATION_MS : 220,   // duración del pulso de cada estrella
 
   // Rampa de luz del velo
   RAMP: [
@@ -40,24 +47,24 @@ const SETTINGS = {
     { t:35000, veil: 0.12 },
   ],
 
-  // Estrellas DOM (ligeras para FPS)
+  // Estrellas DOM
   STAR_TOTAL : 160,
   STAR_FAR   : 0.42,
   STAR_MID   : 0.34,
   STAR_NEAR  : 0.24,
 
-  // RUSH máximos
+  // RUSH máximo
   RUSH_MAX_SCALE_NEAR : 2.4,
   RUSH_MAX_SCALE_MID  : 1.7,
   RUSH_MAX_SCALE_FAR  : 1.2,
 
   // Canvas WARP (fluido y natural, corto e intenso)
-  WARP_DURATION_MS : 1200,   // ~1.2s (ajusta 1000–1500)
-  WARP_PARTICLES   : 650,    // cantidad de partículas
-  WARP_SPREAD      : 0.9,    // distribución radial (0–1)
-  WARP_NOISE       : 0.18,   // curvatura/ruido de trayectoria
-  WARP_TAIL        : 0.65,   // longitud de cola relativa (0–1)
-  WARP_FADE        : 0.85,   // desvanecido global
+  WARP_DURATION_MS : 1200,  // ~1.2s
+  WARP_PARTICLES   : 650,
+  WARP_SPREAD      : 0.9,
+  WARP_NOISE       : 0.18,
+  WARP_TAIL        : 0.65,
+  WARP_FADE        : 0.85,
 
   // Chispas (clic / mantener)
   SPARK_CLICK_MIN  : 10,
@@ -98,24 +105,25 @@ function clamp(n,a,b){ return Math.min(b, Math.max(a, n)); }
 function easeInOutCubic(t){ return t<0.5 ? 4*t*t*t : 1 - Math.pow(-2*t+2,3)/2; }
 function easeOutCubic(t){ return 1 - Math.pow(1 - t, 3); }
 
-/* Timers/Intervals tracking */
+/* Timers */
 const timeouts = new Set(), intervals = new Set();
 function setT(fn, ms){ const id=setTimeout(()=>{timeouts.delete(id); fn();}, ms); timeouts.add(id); return id; }
 function setI(fn, ms){ const id=setInterval(fn, ms); intervals.add(id); return id; }
 function clearAllTimers(){ timeouts.forEach(clearTimeout); intervals.forEach(clearInterval); timeouts.clear(); intervals.clear(); }
 
-/* Formato/parse de tiempos (DEV HUD) */
+/* DEV HUD helpers */
 function fmt(ms){ const s=Math.max(0,Math.floor(ms/1000)); const m=Math.floor(s/60); const r=s%60; return `${String(m).padStart(2,'0')}:${String(r).padStart(2,'0')}`; }
 function parseTimeToMs(txt){
   if(!txt) return 0;
   if(/^\d+(\.\d+)?$/.test(txt)) return Math.round(parseFloat(txt)*1000); // "57.5"
-  const m=txt.split(':').map(Number); if(m.length===2) return (m[0]*60+m[1])*1000;
+  const m=txt.split(':').map(Number);
+  if(m.length===2) return (m[0]*60+m[1])*1000;
   if(m.length===3) return (m[0]*3600+m[1]*60+m[2])*1000;
   return 0;
 }
 
 /* ============================================================
-   [C] REFERENCIAS DOM + UI inyectada
+   [C] DOM + UI inyectada
    ============================================================ */
 const audio=$("#musica"), btn=$("#playBtn"), titulo=$("#titulo"), escena=$("#escena"), dust=$("#dust"), consts=$("#constellations"), halo=$("#halo");
 
@@ -311,7 +319,72 @@ function startRush(){
 }
 
 /* ============================================================
-   [I] WARP CANVAS (58.8–60.0s, ~1.2s)
+   [I] BEATS 54–59s (14 destellos uno por uno)
+   ============================================================ */
+function getStarsAroundTitle(padding = 140){
+  const stars = $$(".star");
+  const titleEl = $("#titulo") || $("#center");
+  if(!titleEl || !stars.length) return [];
+
+  const r = titleEl.getBoundingClientRect();
+  const area = {
+    left  : r.left  - padding,
+    right : r.right + padding,
+    top   : r.top   - padding,
+    bottom: r.bottom+ padding
+  };
+
+  const list = [];
+  stars.forEach(s=>{
+    const x = parseFloat(s.dataset.x || s.style.left);
+    const y = parseFloat(s.dataset.y || s.style.top);
+    if(isNaN(x) || isNaN(y)) return;
+    if(x>=area.left && x<=area.right && y>=area.top && y<=area.bottom){
+      list.push(s);
+    }
+  });
+
+  // ordena por proximidad al centro del título (queda armónico)
+  const cx = r.left + r.width/2;
+  const cy = r.top  + r.height/2;
+  list.sort((a,b)=>{
+    const ax=parseFloat(a.dataset.x), ay=parseFloat(a.dataset.y);
+    const bx=parseFloat(b.dataset.x), by=parseFloat(b.dataset.y);
+    const da=(ax-cx)*(ax-cx)+(ay-cy)*(ay-cy);
+    const db=(bx-cx)*(bx-cx)+(by-cy)*(by-cy);
+    return da - db;
+  });
+
+  return list;
+}
+function beatPulse(star, duration){
+  if(!star) return;
+  star.classList.add("beat");
+  setTimeout(()=> star.classList.remove("beat"), duration);
+}
+function scheduleStarBeats(offsetMs){
+  const list = getStarsAroundTitle(140);
+  if(!list.length) return;
+
+  const N = SETTINGS.STAR_BEATS_COUNT;
+  const windowMs = SETTINGS.STAR_BEATS_WINDOW_MS; // 5000 ms
+  const step = windowMs / N; // ~357 ms
+  const used = new Set();
+
+  for(let i=0; i<N; i++){
+    const tAbs = SETTINGS.T_STAR_BEATS_START_MS + Math.round(i*step);
+    scheduleAt(tAbs, offsetMs, ()=>{
+      let idx = i % list.length;
+      let hops = 0;
+      while(used.has(idx) && hops < list.length){ idx = (idx+1) % list.length; hops++; }
+      used.add(idx);
+      beatPulse(list[idx], SETTINGS.STAR_BEAT_DURATION_MS);
+    });
+  }
+}
+
+/* ============================================================
+   [J] WARP CANVAS (58.8–~60s, ~1.2s)
    ============================================================ */
 let warpRAF=null, warpStartTime=0, particles=[];
 function prepareCanvas(){
@@ -327,7 +400,7 @@ function prepareCanvas(){
 function startWarpCanvas(){
   prepareCanvas();
   warpCanvas.style.display="block";
-  // Ocultamos estrellas DOM para evitar “dureza”
+  // suaviza: apaga un poco las estrellas DOM
   $$(".star").forEach(s=> s.style.opacity=0.15);
 
   const cx=window.innerWidth/2, cy=window.innerHeight/2;
@@ -339,8 +412,7 @@ function startWarpCanvas(){
     const y=cy + Math.sin(a)*r;
     const speed= (0.9+Math.random()*0.6) * Math.max(window.innerWidth, window.innerHeight)/SETTINGS.WARP_DURATION_MS; // px/ms
     const noise=(Math.random()*2-1)*SETTINGS.WARP_NOISE; // curvita leve
-    const hue= 200 + Math.random()*40; // azulados
-    return {x,y,a,speed,noise,hue};
+    return {x,y,a,speed,noise};
   });
 
   warpStartTime=performance.now();
@@ -362,9 +434,8 @@ function startWarpCanvas(){
       const x1 = x2 - vx*dist*tail;
       const y1 = y2 - vy*dist*tail;
 
-      // gradiente suave por partícula
       const grad=wctx.createLinearGradient(x1,y1,x2,y2);
-      grad.addColorStop(0, `rgba(180,200,255,${0.0})`);
+      grad.addColorStop(0, `rgba(180,200,255,0.00)`);
       grad.addColorStop(0.4,`rgba(190,210,255,${0.22*fade})`);
       grad.addColorStop(1, `rgba(255,255,255,${0.60*fade})`);
 
@@ -385,7 +456,7 @@ function stopWarpCanvas(){
 }
 
 /* ============================================================
-   [J] BOOM (60.0s)
+   [K] BOOM
    ============================================================ */
 let boomDone=false;
 async function doBoom(fromSkip=false){
@@ -396,7 +467,6 @@ async function doBoom(fromSkip=false){
   window.removeEventListener("mouseup", onMouseUp);
   stopSparkle(); stopWhispers();
 
-  // apagar warp canvas si estuviera activo
   if(warpRAF) cancelAnimationFrame(warpRAF);
   stopWarpCanvas();
 
@@ -406,7 +476,6 @@ async function doBoom(fromSkip=false){
     for(let i=0;i<=SETTINGS.AUDIO_FADE_STEPS;i++){
       const f=1-(i/SETTINGS.AUDIO_FADE_STEPS);
       audio.volume=clamp(startVol*f,0,1);
-      // eslint-disable-next-line no-await-in-loop
       await wait(SETTINGS.AUDIO_FADE_DELAY);
     }
     audio.pause();
@@ -422,7 +491,7 @@ async function doBoom(fromSkip=false){
 }
 
 /* ============================================================
-   [K] SCHEDULER con OFFSET (para DEV HUD)
+   [L] SCHEDULER con OFFSET (para DEV HUD)
    ============================================================ */
 function scheduleAt(absMs, offsetMs, fn){ const delay=absMs-offsetMs; if(delay<=0){ try{fn();}catch{} return; } setT(fn, delay); }
 
@@ -451,7 +520,7 @@ function resetVisuals(){
 }
 
 function startTimelineWithOffset(offsetMs){
-  // Estrellas y capas base
+  // Base
   createStars(SETTINGS.STAR_TOTAL);
   startSparkle();
   showNebulas();
@@ -475,40 +544,39 @@ function startTimelineWithOffset(offsetMs){
   scheduleAt(SETTINGS.T_SHOOT_1_MS, offsetMs, ()=> shootingStar(0));
   scheduleAt(SETTINGS.T_SHOOT_2_MS, offsetMs, ()=> shootingStar(0));
 
+  // Beats 54–59s (lucecitas cerca del título, uno por uno)
+  scheduleStarBeats(offsetMs);
+
+  // Despedida de textos
   scheduleAt(SETTINGS.T_TEXTS_FADE_MS, offsetMs, ()=>{ fadeOutTexts(); stopWhispers(); });
 
-  // Rush
+  // Rush + Warp + Boom
   scheduleAt(SETTINGS.T_RUSH_START_MS, offsetMs, startRush);
-
-  // Warp Canvas corto (rápido y natural)
   scheduleAt(SETTINGS.T_WARP_START_MS, offsetMs, startWarpCanvas);
-
-  // Preboom y Boom
   scheduleAt(SETTINGS.T_PREBOOM_MS, offsetMs, ()=> root.classList.add("preboom"));
   scheduleAt(SETTINGS.T_BOOM_MS, offsetMs, ()=> doBoom(false));
 
   // Rampa con offset
   rampWithOffset(offsetMs);
+
+  // UI
+  scheduleHint();
+  scheduleSkip();
 }
 
 /* Saltar a tiempo (DEV) */
 function jumpTo(ms){
   resetVisuals();
-  // audio sync
   try{ audio.currentTime = Math.max(0, ms/1000); }catch{}
-  // reconstruir
   startTimelineWithOffset(ms);
 }
 function jumpRel(delta){ const ms=Math.max(0, (audio.currentTime*1000|0) + delta); jumpTo(ms); }
 
 /* ============================================================
-   [L] TIMELINE NORMAL
+   [M] TIMELINE NORMAL + PLAY + HUD
    ============================================================ */
 function startTimeline(){ startTimelineWithOffset(0); }
 
-/* ============================================================
-   [M] PLAY, DEV HUD y teclado
-   ============================================================ */
 btn.addEventListener("click", async ()=>{
   audio.load(); audio.volume=SETTINGS.AUDIO_VOLUME;
   try{
@@ -517,7 +585,6 @@ btn.addEventListener("click", async ()=>{
     mountDevHUD();
     if(SETTINGS.DEV_START_AT_MS!=null){ jumpTo(SETTINGS.DEV_START_AT_MS); }
     else{ startTimeline(); }
-    // HUD updater
     if(SETTINGS.DEV_HUD){
       setI(()=>{ const t=$("#hudTime"); if(t) t.textContent=fmt(audio.currentTime*1000); }, 200);
     }
@@ -540,5 +607,3 @@ window.addEventListener("beforeunload", ()=>{
   stopWhispers();
   stopSparkle();
 });
-
-
