@@ -1,50 +1,138 @@
 /*************************
  * Intro La La Land (PC)
- * Timeline + interacciones
+ * Timeline + interacciones + Rush + Boom
  *************************/
 
-// --------- Helpers ---------
+// ========================
+// Helpers
+// ========================
 const $  = s => document.querySelector(s);
 const $$ = s => document.querySelectorAll(s);
 const wait = ms => new Promise(r => setTimeout(r, ms));
-function setVeil(value){ document.documentElement.style.setProperty("--veil", String(value)); }
+const root = document.documentElement; // <html>
+function setVeil(value){ root.style.setProperty("--veil", String(value)); }
+function setVar(name, val){ root.style.setProperty(name, String(val)); }
+function clamp(n, a, b){ return Math.min(b, Math.max(a, n)); }
+function easeInQuad(t){ return t*t; }
+function easeInCubic(t){ return t*t*t; }
+function easeInOutCubic(t){ return t<0.5 ? 4*t*t*t : 1 - Math.pow(-2*t+2,3)/2; }
 
-console.log("intro.js cargado ✅");
-
-// --------- DOM refs ---------
+// ========================
+// DOM refs (existentes)
+// ========================
 const audio  = $("#musica");
 const btn    = $("#playBtn");
 const titulo = $("#titulo");
 const escena = $("#escena");
-const veil   = $("#veil");
 const dust   = $("#dust");
 const consts = $("#constellations");
 const halo   = $("#halo");
 
 // Sanity check
-if(!audio || !btn || !titulo || !escena || !veil){
+if(!audio || !btn || !titulo || !escena){
   console.error("Faltan elementos del DOM. Revisa IDs en index.html");
 }
 
-// ======================================================
-//                  ESTRELLAS (base + sparkle)
-// ======================================================
-function createStars(count = 170){
-  for(let i=0;i<count;i++){
+// ========================
+// Elementos UI creados por JS
+// ========================
+const hint = document.createElement("div");
+hint.id = "hint";
+hint.textContent = "mueve el mouse ✨ / toca la pantalla";
+document.body.appendChild(hint);
+
+const skipBtn = document.createElement("button");
+skipBtn.id = "skipBtn";
+skipBtn.setAttribute("aria-label","Saltar al siguiente capítulo");
+skipBtn.innerHTML = "⭐ <span>SaltAR</span>";
+document.body.appendChild(skipBtn);
+
+const flash = document.createElement("div");
+flash.id = "flash";
+document.body.appendChild(flash);
+
+// ========================
+// Configuración temporal
+// ========================
+const T_RAMP = [ // rampa de luz como antes
+  { t:   0, veil: 1.00 },
+  { t:2000, veil: 0.70 },
+  { t:5000, veil: 0.55 },
+  { t:15000, veil: 0.35 },
+  { t:35000, veil: 0.12 }
+];
+
+// Coreografía original (reutilizada)
+const T_SHOW_TITLE_MS     = 7000;
+const T_INTERACTIONS_MS   = 10000; // parallax
+const T_HALO_ON_MS        = 12000;
+const T_DUST_MSG_MS       = 15000;
+const T_WHISPERS_MS       = 18000;
+const T_CONST_1_MS        = 22000;
+const T_CONST_2_MS        = 30000;
+const T_SHOOT_1_MS        = 29000;
+const T_SHOOT_2_MS        = 44000;
+const T_TEXTS_FADE_MS     = 50000;
+
+// Nuevos tiempos (rush/boom/skip/hint)
+const T_HINT_IN_MS        = 15000;
+const T_HINT_OUT_MS       = 22000;
+const T_SKIP_VISIBLE_MS   = 35000;
+const T_RUSH_START_MS     = 40000;
+const T_PREBOOM_MS        = 58800;
+const T_BOOM_MS           = 59000;
+
+// ========================
+// Timers & cleanup
+// ========================
+const timeouts = new Set();
+const intervals = new Set();
+function setT(fn, ms){
+  const id = setTimeout(()=>{ timeouts.delete(id); fn(); }, ms);
+  timeouts.add(id); return id;
+}
+function setI(fn, ms){
+  const id = setInterval(fn, ms);
+  intervals.add(id); return id;
+}
+function clearAllTimers(){
+  timeouts.forEach(id => clearTimeout(id));
+  intervals.forEach(id => clearInterval(id));
+  timeouts.clear(); intervals.clear();
+}
+
+// ========================
+// Estrellas (capas + sparkle)
+// ========================
+function createStars(count = 220){
+  // Distribución por profundidad
+  const FAR_PCT  = 0.40;  // 40%
+  const MID_PCT  = 0.35;  // 35%
+  const NEAR_PCT = 0.25;  // 25%
+
+  const farCount  = Math.floor(count * FAR_PCT);
+  const midCount  = Math.floor(count * MID_PCT);
+  const nearCount = count - farCount - midCount;
+
+  function createOne(layer){
     const s = document.createElement("div");
-    s.className = "star";
+    s.className = `star ${layer}`;
     s.style.top  = (Math.random() * window.innerHeight) + "px";
     s.style.left = (Math.random() * window.innerWidth)  + "px";
     s.style.animationDuration = (2 + Math.random()*3) + "s";
     document.body.appendChild(s);
-    // entrada con retardo aleatorio (sin pops)
+    // entrada sin pops
     setTimeout(()=>{ s.style.opacity = 1; }, 1200 + Math.random()*1800);
   }
+
+  for(let i=0;i<farCount;i++)  createOne("far");
+  for(let i=0;i<midCount;i++)  createOne("mid");
+  for(let i=0;i<nearCount;i++) createOne("near");
 }
 
 let sparkleTimer = null;
 function startSparkle(){
-  sparkleTimer = setInterval(()=>{
+  sparkleTimer = setI(()=>{
     const stars = $$(".star");
     if(!stars.length) return;
     const n = 4 + Math.floor(Math.random()*3); // 4-6 estrellas
@@ -56,10 +144,11 @@ function startSparkle(){
     }
   }, 3800);
 }
+function stopSparkle(){ if(sparkleTimer){ clearInterval(sparkleTimer); intervals.delete(sparkleTimer); sparkleTimer=null; } }
 
-// ======================================================
-//                     NEBULOSAS
-// ======================================================
+// ========================
+// Nebulosas
+// ========================
 function ensureNebulas(){
   if(!$$(".nebula").length){
     [["blue","pos-1"],["pink","pos-2"],["gold","pos-3"]].forEach(([tone,pos])=>{
@@ -72,15 +161,15 @@ function ensureNebulas(){
 function showNebulas(){
   ensureNebulas();
   $$(".nebula").forEach((n,i)=>{
-    setTimeout(()=> n.classList.add("visible"), 5000 + i*1200); // 5.0s, 6.2s, 7.4s
+    setT(()=> n.classList.add("visible"), 5000 + i*1200); // 5.0s, 6.2s, 7.4s
   });
 }
 
-// ======================================================
-//                   ESTRELLAS FUGACES
-// ======================================================
+// ========================
+// Fugaces
+// ========================
 function shootingStar(afterMs){
-  setTimeout(()=>{
+  setT(()=>{
     const s = document.createElement("div");
     s.className = "shooting-star";
     s.style.left = (Math.random()*window.innerWidth) + "px";
@@ -89,9 +178,9 @@ function shootingStar(afterMs){
   }, afterMs);
 }
 
-// ======================================================
-//                   CONSTELACIONES
-// ======================================================
+// ========================
+// Constelaciones
+// ========================
 function drawConstellation({top, left, length, angleDeg, life=3800}){
   const line = document.createElement("div");
   line.className = "const-line";
@@ -100,82 +189,66 @@ function drawConstellation({top, left, length, angleDeg, life=3800}){
   line.style.width = length + "px";
   line.style.transform = `rotate(${angleDeg}deg) scaleX(0)`;
   consts.appendChild(line);
-  requestAnimationFrame(()=> line.classList.add("draw")); // anima
+  requestAnimationFrame(()=> line.classList.add("draw"));
   setTimeout(()=> line.classList.add("fade"), life);
   setTimeout(()=> line.remove(), life + 2200);
 }
 
-// ======================================================
-//                      POLVO ESTELAR
-// ======================================================
+// ========================
+// Polvo estelar
+// ========================
 function activateDust(){ if(dust) dust.classList.add("visible"); }
 
-// ======================================================
-//                       TEXTOS
-// ======================================================
+// ========================
+// Textos
+// ========================
 function showTitle(){  titulo.classList.add("show"); }
 function showSceneMsg(){
   escena.textContent = "🌌 Nuestro viaje comienza...";
   escena.classList.add("show");
 }
 function fadeOutTexts(){
-  // Se pidió que ambos se vayan juntos
   titulo.classList.add("fade-out");
   escena.classList.add("fade-out");
   const w = $("#whisper");
   if(w){ w.classList.add("hide"); }
 }
 
-// ======================================================
-//              Rampa de luz (overlay global)
-// ======================================================
+// ========================
+// Rampa de luz
+// ========================
 async function rampBrightness(){
-  setVeil(1.0);           // 0–2s noche cerrada
-  await wait(2000);
-  setVeil(0.70);          // 2–5s
-  await wait(3000);
-  setVeil(0.55);          // 5–15s
-  await wait(10000);
-  setVeil(0.35);          // 15–35s
-  await wait(20000);
-  setVeil(0.12);          // 35–60s
+  for(let i=0;i<T_RAMP.length;i++){
+    const step = T_RAMP[i];
+    setT(()=> setVeil(step.veil), step.t);
+  }
 }
 
-// ======================================================
-//            INTERACCIONES (PC)
-//  - Parallax suave de nebulosas
-//  - Destellos por click
-//  - Susurros rotativos 18–48s
-//  - Halo central que “respira” (boosts)
-// ======================================================
-
-// ---------- Parallax (nebulosas siguen al mouse) ----------
+// ========================
+// Interacciones: Parallax
+// ========================
 let parallaxActive = false;
 let targetX = 0, targetY = 0;
-let px = 0, py = 0;           // valores suavizados
-const ease = 0.06;            // inercia
+let px = 0, py = 0;
+const easeParallax = 0.06;
 
 function onMouseMove(e){
   if(!parallaxActive) return;
   const cx = window.innerWidth / 2;
   const cy = window.innerHeight / 2;
-  // Normalizamos a rango [-1, 1]
   targetX = (e.clientX - cx) / cx;
   targetY = (e.clientY - cy) / cy;
 }
 function parallaxLoop(){
   if(parallaxActive){
-    // LERP suave
-    px += (targetX - px) * ease;
-    py += (targetY - py) * ease;
+    px += (targetX - px) * easeParallax;
+    py += (targetY - py) * easeParallax;
 
     const layers = $$(".nebula");
     layers.forEach((n, i)=>{
-      const strength = (i+1) * 6; // 6, 12, 18 px máx aprox
+      const strength = (i+1) * 6; // 6, 12, 18 px aprox
       const tx = -px * strength;
       const ty = -py * strength;
-      // Nota: esto sobrescribe transform de la animación.
-      // Si prefieres mantener float/pulse + parallax juntos, podemos migrar a CSS vars.
       n.style.transform = `translate(${tx}px, ${ty}px)`;
     });
   }
@@ -184,7 +257,9 @@ function parallaxLoop(){
 window.addEventListener("mousemove", onMouseMove);
 parallaxLoop();
 
-// ---------- Destellos por click ----------
+// ========================
+// Click spark
+// ========================
 let lastSparkTs = 0;
 function onClickSpark(e){
   const now = performance.now();
@@ -201,7 +276,9 @@ function onClickSpark(e){
 function enableClickSpark(){ window.addEventListener("click", onClickSpark); }
 function disableClickSpark(){ window.removeEventListener("click", onClickSpark); }
 
-// ---------- Susurros rotativos ----------
+// ========================
+// Susurros
+// ========================
 const WHISPERS = [
   "Cierra los ojos…",
   "Respira conmigo…",
@@ -228,118 +305,245 @@ function startWhispers(){
     }, 400);
   }
   showNext();
-  whisperTimer = setInterval(showNext, 9000);
+  whisperTimer = setI(showNext, 9000);
 }
 function stopWhispers(){
-  if(whisperTimer){ clearInterval(whisperTimer); whisperTimer = null; }
+  if(whisperTimer){ clearInterval(whisperTimer); intervals.delete(whisperTimer); whisperTimer = null; }
   const w = $("#whisper");
   if(w){ w.classList.add("hide"); }
 }
 
-// ---------- Halo respirando con boosts ----------
+// ========================
+// Halo respirando con boosts
+// ========================
 function startHalo(){
   if(!halo) return;
-  halo.classList.add("on");                // activa pulso lento
-  // Boosts sutiles (28s y 40s aprox)
-  setTimeout(()=>{
+  halo.classList.add("on");
+  // Boosts sutiles
+  setT(()=>{
     halo.classList.add("boost");
     setTimeout(()=> halo.classList.remove("boost"), 1200);
   }, 28000);
-  setTimeout(()=>{
+  setT(()=>{
     halo.classList.add("boost");
     setTimeout(()=> halo.classList.remove("boost"), 1200);
   }, 40000);
 }
 
-// ======================================================
-//                 TIMELINE PRINCIPAL
-// ======================================================
+// ========================
+// HINT (15–22s)
+// ========================
+function scheduleHint(){
+  setT(()=> hint.classList.add("show"), T_HINT_IN_MS);
+  setT(()=> hint.classList.remove("show"), T_HINT_OUT_MS);
+}
+
+// ========================
+// SKIP (desde 35s)
+// ========================
+function scheduleSkip(){
+  setT(()=>{
+    root.classList.add("skip-visible");
+    skipBtn.addEventListener("click", onSkip);
+  }, T_SKIP_VISIBLE_MS);
+}
+function onSkip(){
+  // Simula el mismo final que a los 59s
+  doBoom(true);
+}
+
+// ========================
+// RUSH 40–59s (estrellas acercándose)
+// ========================
+let rushRAF = null;
+function startRush(){
+  root.classList.add("rush");
+  const DURATION = Math.max(1, T_BOOM_MS - T_RUSH_START_MS); // 19,000 ms aprox
+  const t0 = performance.now();
+
+  // Iniciales
+  setVar("--rush-scale-near", 1);
+  setVar("--rush-scale-mid",  1);
+  setVar("--rush-scale-far",  1);
+  setVar("--rush-opacity",    0.95);
+
+  function step(now){
+    const elapsed = now - t0;
+    const t = clamp(elapsed / DURATION, 0, 1);         // 0→1
+    const e = easeInOutCubic(t);                       // easing suave
+
+    // Escalados objetivo (puedes ajustar los máximos)
+    const near = 1 + e * 1.8;   // 1 → 2.8
+    const mid  = 1 + e * 1.0;   // 1 → 2.0
+    const far  = 1 + e * 0.3;   // 1 → 1.3
+
+    setVar("--rush-scale-near", near.toFixed(3));
+    setVar("--rush-scale-mid",  mid.toFixed(3));
+    setVar("--rush-scale-far",  far.toFixed(3));
+
+    // Sutil incremento de densidad/claridad (opcional)
+    const op = 0.95 + e * 0.05; // 0.95 → 1.0
+    setVar("--rush-opacity", op.toFixed(3));
+
+    // Micro-traslación radial (cosmética)
+    const warp = (e * 6) | 0; // 0→~6px
+    setVar("--rush-translate", `${warp}px`);
+
+    if(t < 1){
+      rushRAF = requestAnimationFrame(step);
+    }else{
+      rushRAF = null;
+    }
+  }
+  rushRAF = requestAnimationFrame(step);
+}
+
+function preBoom(){
+  // leve preparación visual (blur a near)
+  root.classList.add("preboom");
+}
+
+// ========================
+// BOOM 59s (flash + collapse + fade + hook)
+// ========================
+let boomDone = false;
+async function doBoom(fromSkip=false){
+  if(boomDone) return;
+  boomDone = true;
+
+  // Parar interacciones menores
+  disableClickSpark();
+  stopSparkle();
+  stopWhispers();
+
+  // Pequeño fade de volumen (200ms)
+  try{
+    const startVol = audio.volume;
+    const steps = 6;
+    for(let i=0;i<=steps;i++){
+      const f = 1 - (i/steps);
+      audio.volume = clamp(startVol * f, 0, 1);
+      // eslint-disable-next-line no-await-in-loop
+      await wait(30);
+    }
+    audio.pause();
+  }catch{}
+
+  // Flash
+  setVar("--flash-opacity", 1);
+  setTimeout(()=> setVar("--flash-opacity", 0), 120); // coincide con --flash-duration
+
+  // Colapso viñeta + apagado general
+  root.classList.add("boom");
+
+  // Navegar a la siguiente escena (pequeña espera para ver el efecto)
+  setTimeout(()=>{
+    // Hook a lalaland.html
+    window.location.href = "lalaland.html";
+  }, fromSkip ? 220 : 260); // casi igual en ambos casos
+}
+
+// ========================
+// Timeline principal
+// ========================
 async function startTimeline(){
   // Estrellas base + sparkle
-  createStars(170);
+  createStars(220);
   startSparkle();
 
   // Nebulosas + Título
   showNebulas();
-  setTimeout(showTitle, 7000);    // 7–11s
+  setT(showTitle, T_SHOW_TITLE_MS);
 
   // Activar interacciones en los tiempos acordados
-  setTimeout(()=> { parallaxActive = true; }, 10000); // 10s
-  setTimeout(startHalo, 12000);                       // 12s
+  setT(()=> { parallaxActive = true; }, T_INTERACTIONS_MS);
+  setT(startHalo, T_HALO_ON_MS);
 
-  // Polvo + mensaje + susurros (15s)
-  setTimeout(activateDust, 15000);
-  setTimeout(showSceneMsg, 15000);
-  setTimeout(startWhispers, 18000);                   // 18s
+  // Polvo + mensaje + susurros
+  setT(activateDust, T_DUST_MSG_MS);
+  setT(showSceneMsg, T_DUST_MSG_MS);
+  setT(startWhispers, T_WHISPERS_MS);
 
-  // Constelaciones (22–38s)
-  setTimeout(()=>{
+  // Constelaciones
+  setT(()=>{
     drawConstellation({
       top: window.innerHeight*0.28,
       left: window.innerWidth*0.18,
       length: window.innerWidth*0.22,
       angleDeg: 12
     });
-  }, 22000);
-  setTimeout(()=>{
+  }, T_CONST_1_MS);
+
+  setT(()=>{
     drawConstellation({
       top: window.innerHeight*0.62,
       left: window.innerWidth*0.58,
       length: window.innerWidth*0.18,
       angleDeg: -18
     });
-  }, 30000);
+  }, T_CONST_2_MS);
 
-  // Estrellas fugaces pequeñas (29–44s)
-  shootingStar(29000);
-  shootingStar(44000);
+  // Fugaces
+  shootingStar(T_SHOOT_1_MS);
+  shootingStar(T_SHOOT_2_MS);
 
-  // Habilitar destello por click desde 15s
-  setTimeout(enableClickSpark, 15000);
+  // Hints & Skip
+  scheduleHint();
+  scheduleSkip();
+
+  // Destello por click desde 15s
+  setT(enableClickSpark, T_DUST_MSG_MS);
 
   // Despedida de textos (50–53s)
-  setTimeout(()=>{
+  setT(()=>{
     fadeOutTexts();
     stopWhispers();
-  }, 50000);
+  }, T_TEXTS_FADE_MS);
+
+  // Rush 40–59s
+  setT(startRush, T_RUSH_START_MS);
+  setT(preBoom,   T_PREBOOM_MS);
+  setT(()=> doBoom(false), T_BOOM_MS);
 }
 
-// ======================================================
-//                     PLAY HANDLER
-// ======================================================
+// ========================
+// Play handler
+// ========================
 btn.addEventListener("click", async ()=>{
-  console.log("CLICK en botón ▶");
   audio.load();
   audio.volume = 0.85;
 
   try{
     await audio.play();
-    console.log("Audio reproduciéndose ✅");
     btn.style.display = "none";
     rampBrightness();   // rampa de luz en paralelo
     startTimeline();    // coreografía visual
   }catch(err){
     console.error("Audio bloqueado ❌", err);
-    // Fallback: intenta reanudar tras una mínima interacción adicional
-    // (algunos navegadores necesitan otro gesto de usuario)
     alert("Toca de nuevo para iniciar el audio ✨");
   }
 });
 
-// También permite pulsar SPACE/ENTER para iniciar (accesibilidad)
+// Teclas de accesibilidad: Space/Enter para iniciar, Esc para Skip (opcional)
 window.addEventListener("keydown", (e)=>{
   if(e.code === "Space" || e.code === "Enter"){
-    btn.click();
+    if(btn.style.display !== "none") btn.click();
+  }
+  // Acceso rápido al skip con "KeyS" si ya es visible
+  if(e.code === "KeyS" && root.classList.contains("skip-visible")){
+    onSkip();
   }
 });
 
-// ======================================================
-//                    LIMPIEZA
-// ======================================================
+// ========================
+// Limpieza
+// ========================
 window.addEventListener("beforeunload", ()=>{
-  if(sparkleTimer) clearInterval(sparkleTimer);
-  if(whisperTimer) clearInterval(whisperTimer);
+  clearAllTimers();
+  if(rushRAF) cancelAnimationFrame(rushRAF);
   disableClickSpark();
+  stopWhispers();
+  stopSparkle();
 });
 
 
