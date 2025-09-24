@@ -1,114 +1,209 @@
-body {
-  margin: 0;
-  height: 100vh;
-  background: #000;
-  overflow: hidden;
-  font-family: "Cinzel", serif;
+/* ============ Variables y base ============ */
+:root{
+  --bg1:#02030a;          /* negro azulado */
+  --bg2:#0a1030;          /* azul profundo */
+  --star-glow:rgba(255,255,255,0.85);
+  --blue:rgba(147,197,253,0.30);   /* azulado */
+  --pink:rgba(244,114,182,0.30);   /* rosado */
+  --gold:rgba(255,235,200,0.22);   /* dorado */
 }
 
-/* Botón */
-#playBtn {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  padding: 14px 32px;
-  font-size: 1.2rem;
-  border: 2px solid #fff;
-  border-radius: 30px;
-  background: transparent;
-  color: #fff;
-  cursor: pointer;
-  transition: background 0.3s, transform 0.3s;
-  z-index: 20;
-}
-#playBtn:hover {
-  background: rgba(255,255,255,0.2);
-  transform: translate(-50%, -50%) scale(1.1);
+*{ box-sizing:border-box; }
+html,body{ height:100%; }
+
+body{
+  margin:0;
+  height:100vh;
+  overflow:hidden;
+  font-family:"Cinzel", serif;
+  color:#fff;
+  background:
+    radial-gradient(1200px 800px at 70% 20%, #0d1540 0%, transparent 60%),
+    radial-gradient(1000px 700px at 20% 80%, #060b24 0%, transparent 60%),
+    linear-gradient(180deg, var(--bg1), var(--bg2));
+  position:relative;
 }
 
-/* Contenedor de textos */
-#center {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  text-align: center;
-  color: #fff;
-  z-index: 10;
+/* Viñeta para look cinematográfico */
+body::after{
+  content:"";
+  position:fixed;
+  inset:0;
+  pointer-events:none;
+  background:radial-gradient(ellipse at center,
+             transparent 50%, rgba(0,0,0,0.35) 80%, rgba(0,0,0,0.65) 100%);
+  z-index:5;
 }
 
-/* Título */
-#titulo {
-  font-size: 2.5rem;
-  opacity: 0;
-  transform: scale(1.3);
-  letter-spacing: 3px;
-  text-shadow: 0 0 30px rgba(255,255,255,0.8),
-               0 0 60px rgba(147,197,253,0.5);
-  transition: opacity 3s ease, transform 6s ease;
+/* ============ Botón ============ */
+#playBtn{
+  position:absolute;
+  top:50%; left:50%;
+  transform:translate(-50%,-50%);
+  padding:14px 32px;
+  font-size:1.2rem;
+  border:2px solid #fff;
+  border-radius:30px;
+  background:transparent;
+  color:#fff;
+  cursor:pointer;
+  transition:background .3s, transform .3s, box-shadow .3s;
+  z-index:20;
+  letter-spacing:.5px;
+}
+#playBtn:hover{
+  background:rgba(255,255,255,0.15);
+  transform:translate(-50%,-50%) scale(1.06);
+  box-shadow:0 0 24px rgba(255,255,255,0.15);
 }
 
-/* Texto secundario */
-#escena {
-  font-size: 1.5rem;
-  margin-top: 20px;
-  opacity: 0;
-  transition: opacity 2s ease;
-  text-shadow: 0 0 10px rgba(255,255,255,0.6);
+/* ============ Contenedor de textos ============ */
+#center{
+  position:absolute;
+  top:50%; left:50%;
+  transform:translate(-50%,-50%);
+  text-align:center;
+  z-index:10;
+  width:min(92vw, 900px);
+  padding:0 8px;
 }
 
-/* Estrellas divs (PC) */
-.star {
-  position: absolute;
-  width: 2px;
-  height: 2px;
-  background: white;
-  border-radius: 50%;
-  opacity: 0; /* ocultas al inicio */
-  animation: twinkle 3s infinite alternate;
-}
-@keyframes twinkle {
-  from { opacity: 0.2; transform: scale(0.8); }
-  to { opacity: 1; transform: scale(1.3); }
+/* Título principal */
+#titulo{
+  font-size:clamp(1.6rem, 3.2vw, 2.6rem);
+  opacity:0;
+  transform:scale(1.18);
+  letter-spacing:2.5px;
+  text-shadow:
+    0 0 18px rgba(255,255,255,0.55),
+    0 0 42px rgba(147,197,253,0.35);
+  transition:opacity 2.8s ease, transform 6s ease;
 }
 
-/* Nebulosas */
-.nebula {
-  position: absolute;
-  width: 600px;
-  height: 600px;
-  background: radial-gradient(circle,
-              rgba(147,197,253,0.25), transparent 70%);
-  filter: blur(100px);
-  opacity: 0; /* oculta al inicio */
-  animation: float 30s infinite alternate ease-in-out;
-}
-.nebula:nth-child(1) { top: 10%; left: 20%; }
-.nebula:nth-child(2) {
-  bottom: 15%; right: 25%;
-  background: radial-gradient(circle,
-              rgba(244,114,182,0.25), transparent 70%);
-}
-@keyframes float {
-  from { transform: translate(0,0); }
-  to { transform: translate(60px, -40px); }
+/* Texto secundario sincronizado */
+#escena{
+  font-size:clamp(1.05rem, 2.2vw, 1.6rem);
+  margin-top:18px;
+  opacity:0;
+  transition:opacity 1.8s ease;
+  text-shadow:0 0 12px rgba(255,255,255,0.55);
 }
 
-/* Estrellas fugaces */
-.shooting-star {
-  position: absolute;
-  width: 2px;
-  height: 100px;
-  background: linear-gradient(white, transparent);
-  transform: rotate(-45deg);
-  top: -100px;
-  opacity: 0;
-  animation: fall 2s linear forwards;
+/* ============ Canvas de estrellas (móvil) ============ */
+#starCanvas{
+  position:fixed;
+  inset:0;
+  z-index:0;
 }
-@keyframes fall {
-  0% { transform: translate(0,0) rotate(-45deg); opacity: 1; }
-  100% { transform: translate(-400px,400px) rotate(-45deg); opacity: 0; }
+
+/* ============ Estrellas (PC, creadas por JS) ============ */
+.star{
+  position:absolute;
+  width:2px; height:2px;
+  background:#fff;
+  border-radius:50%;
+  opacity:0;                    /* ocultas al inicio, luego JS las revela */
+  box-shadow:0 0 8px var(--star-glow);
+  animation:twinkle 3s infinite alternate;
 }
+@keyframes twinkle{
+  from{ opacity:0.25; transform:scale(0.85); }
+  to  { opacity:1;    transform:scale(1.28); }
+}
+
+/* Estado de “destello” breve que activaremos con JS en algunas estrellas */
+.star.sparkle{
+  transition:transform .5s ease, opacity .5s ease, filter .5s ease;
+  transform:scale(2);
+  opacity:1;
+  filter:drop-shadow(0 0 10px #fff) drop-shadow(0 0 24px rgba(147,197,253,.7));
+}
+
+/* ============ Nebulosas / galaxia ============ */
+.nebula{
+  position:absolute;
+  width:600px; height:600px;
+  border-radius:50%;
+  filter:blur(100px);
+  opacity:0;                    /* se revelan por JS en secuencia */
+  z-index:1;
+  animation:
+    float 28s infinite alternate ease-in-out,
+    pulse 12s infinite ease-in-out;
+  will-change:transform, opacity;
+}
+
+/* Paletas */
+.nebula.blue{ background:radial-gradient(circle, var(--blue), transparent 70%); }
+.nebula.pink{ background:radial-gradient(circle, var(--pink), transparent 70%); }
+.nebula.gold{ background:radial-gradient(circle, var(--gold), transparent 70%); }
+
+/* Posiciones sugeridas (puedes combinarlas) */
+.nebula.pos-1{ top:10%; left:18%; }
+.nebula.pos-2{ bottom:14%; right:22%; }
+.nebula.pos-3{ top:48%; left:65%; }
+.nebula.pos-4{ top:22%; right:8%; }
+
+/* Movimiento lento */
+@keyframes float{
+  from{ transform:translate(0,0) rotate(0deg) scale(1); }
+  to  { transform:translate(60px,-40px) rotate(8deg) scale(1.08); }
+}
+/* Respiración de luz */
+@keyframes pulse{
+  0%,100%{ opacity:.22; }
+  50%    { opacity:.50; }
+}
+
+/* ============ Estrellas fugaces (PC) ============ */
+.shooting-star{
+  position:absolute;
+  width:2px; height:110px;
+  background:linear-gradient(#fff, transparent);
+  transform:rotate(-45deg);
+  top:-120px;
+  opacity:0;
+  animation:fall 2s linear forwards;
+  z-index:2;
+}
+@keyframes fall{
+  0%  { transform:translate(0,0) rotate(-45deg); opacity:1; }
+  100%{ transform:translate(-420px,420px) rotate(-45deg); opacity:0; }
+}
+
+/* ============ Responsivo ============ */
+@media (max-width: 768px){
+  #titulo{ font-size:clamp(1.4rem, 5.8vw, 2rem); letter-spacing:2px; }
+  #escena{ font-size:clamp(1rem, 4.4vw, 1.3rem); }
+
+  .nebula{
+    width:420px; height:420px;
+    filter:blur(80px);
+  }
+  .nebula.pos-1{ top:8%; left:10%; }
+  .nebula.pos-2{ bottom:10%; right:8%; }
+  .nebula.pos-3{ top:58%; left:55%; }
+}
+
+@media (max-width: 480px){
+  #titulo{ font-size:clamp(1.2rem, 6.4vw, 1.6rem); }
+  #escena{ font-size:clamp(.95rem, 4.8vw, 1.15rem); }
+
+  .nebula{
+    width:360px; height:360px;
+    filter:blur(70px);
+  }
+}
+
+/* ============ Accesibilidad: reduce motion ============ */
+@media (prefers-reduced-motion: reduce){
+  .star, .nebula, .shooting-star{
+    animation:none !important;
+  }
+  #titulo, #escena{
+    transition:none !important;
+  }
+}
+
 
 
