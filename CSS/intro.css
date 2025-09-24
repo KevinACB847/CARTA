@@ -1,29 +1,36 @@
-/* =========================
+/* =========================================================
    INTRO LA LA LAND — CSS COMPLETO
-   (rush 40–59s real + boom 59s + skip + hint)
-========================= */
+   - Estrellas con escala por variable (RUSH)
+   - WARP (55–59s) con estelas
+   - BOOM (59s) flash + colapso + blackout
+   - Hint, Skip, Responsive y Accesibilidad
+   ========================================================= */
 
 /* =========================
    VARIABLES & BASE
 ========================= */
 :root{
   --bg1:#02030a; --bg2:#0a1030;
+
+  /* Tonos nebulosas */
   --blue:rgba(147,197,253,0.30);
   --pink:rgba(244,114,182,0.30);
   --gold:rgba(255,235,200,0.22);
+
+  /* Estrellas */
   --star-glow: rgba(255,255,255,0.85);
 
-  /* Velo global 1=negro total, 0=sin velo */
+  /* Velo global (rampa de luz) → 1 = negro total, 0 = sin velo */
   --veil: 1;
 
-  /* Rush (controlados por JS) */
-  --rush-scale-near: 1;   /* 1 → 2.8 */
-  --rush-scale-mid:  1;   /* 1 → 2.0 */
-  --rush-scale-far:  1;   /* 1 → 1.3 */
-  --rush-translate:  0px;
+  /* RUSH (controlado por JS 40–55s) */
+  --rush-scale-near: 1;   /* 1 → 2.8 aprox */
+  --rush-scale-mid:  1;   /* 1 → 2.0 aprox */
+  --rush-scale-far:  1;   /* 1 → 1.3 aprox */
+  --rush-translate:  0px; /* adorno leve */
   --rush-opacity:    1;
 
-  /* Halo */
+  /* HALO */
   --halo-base-opacity: .16;
   --halo-boost-opacity: .22;
 
@@ -32,7 +39,7 @@
   --ui-bd: rgba(255,255,255,.35);
   --ui-tx: #fff;
 
-  /* Flash boom */
+  /* BOOM flash */
   --flash-opacity: 0;
   --flash-duration: 120ms;
 }
@@ -42,18 +49,19 @@ html,body{ height:100%; }
 
 body{
   margin:0; height:100vh; overflow:hidden; color:#fff;
-  font-family:"Cinzel", serif; position:relative;
+  font-family:"Cinzel", serif;
   background:
     radial-gradient(1200px 800px at 70% 20%, #0d1540 0%, transparent 60%),
     radial-gradient(1000px 700px at 20% 80%, #060b24 0%, transparent 60%),
     linear-gradient(180deg, var(--bg1), var(--bg2));
+  position:relative;
 }
 
-/* VELO global */
+/* Viñeta cinematográfica + VELO global */
 #veil{
   position:fixed; inset:0; pointer-events:none; z-index:50;
   background: rgba(0,0,0, calc(var(--veil)));
-  transition: background 2.5s ease; /* rampa */
+  transition: background 2.5s ease; /* rampa de luz */
 }
 body::after{
   content:""; position:fixed; inset:0; pointer-events:none; z-index:5;
@@ -66,9 +74,9 @@ body::after{
 ========================= */
 #playBtn{
   position:absolute; top:50%; left:50%; transform:translate(-50%,-50%);
-  padding:14px 32px; font-size:1.2rem;
+  padding:14px 32px; font-size:1.2rem; letter-spacing:.4px;
   border:2px solid #fff; border-radius:30px;
-  background:transparent; color:#fff; cursor:pointer; letter-spacing:.4px;
+  background:transparent; color:#fff; cursor:pointer;
   transition: background .3s, transform .3s, box-shadow .3s;
   z-index:9999; pointer-events:auto;
 }
@@ -83,82 +91,137 @@ body::after{
 ========================= */
 #center{
   position:absolute; top:50%; left:50%; transform:translate(-50%,-50%);
-  text-align:center; width:min(92vw, 900px); padding:0 8px; z-index:10;
+  text-align:center; width:min(92vw, 900px);
+  padding:0 8px; z-index:10;
 }
 #titulo{
-  font-size: clamp(1.6rem, 3.2vw, 2.6rem); letter-spacing:2.5px;
-  text-shadow: 0 0 18px rgba(255,255,255,0.55), 0 0 42px rgba(147,197,253,0.35);
+  font-size: clamp(1.6rem, 3.2vw, 2.6rem);
+  letter-spacing:2.5px;
+  text-shadow:
+    0 0 18px rgba(255,255,255,0.55),
+    0 0 42px rgba(147,197,253,0.35);
   opacity:0; transform: scale(1.12);
   transition: opacity 2.8s ease, transform 6s ease;
 }
 #escena{
-  font-size: clamp(1.05rem, 2.2vw, 1.6rem); margin-top:18px; opacity:0;
+  font-size: clamp(1.05rem, 2.2vw, 1.6rem);
+  margin-top: 18px;
+  opacity:0;
   text-shadow: 0 0 12px rgba(255,255,255,0.55);
   transition: opacity 1.8s ease;
 }
 .show{ opacity:1 !important; transform:none !important; }
 .fade-out{ opacity:0 !important; transition: opacity 2.2s ease !important; }
 
+#escena #whisper{
+  display:block; margin-top:8px;
+  font-size: clamp(.9rem, 1.8vw, 1.15rem);
+  opacity:0; letter-spacing:.4px;
+  color: rgba(255,255,255,.85);
+  text-shadow: 0 0 8px rgba(255,255,255,.35);
+  transition: opacity .9s ease;
+}
+#escena #whisper.show{ opacity:.72; }
+#escena #whisper.hide{ opacity:0; }
+
 /* =========================
-   ESTRELLAS (div) + RUSH por variable
+   ESTRELLAS (div) — ESCALA por variable
 ========================= */
 .star{
-  position:absolute; width:2px; height:2px; background:#fff; border-radius:50%;
-  opacity:0; box-shadow: 0 0 8px var(--star-glow); z-index:1;
+  position:absolute;
+  width:2px; height:2px;
+  background:#fff; border-radius:50%;
+  opacity:0; /* aparecen con retardo para evitar “pops” */
+  box-shadow: 0 0 8px var(--star-glow);
+  z-index:1;
   will-change: opacity, filter, transform;
-  --star-scale: 1;                           /* VARIABLE DE ESCALA */
-  transform: scale(var(--star-scale));       /* ← twinkle ya NO toca transform */
-  animation: twinkleOpacity 3s infinite alternate; /* solo opacidad */
+
+  /* Twinkle NO usa transform; la escala es variable */
+  --star-scale: 1;
+  transform: scale(var(--star-scale));
+  animation: twinkleOpacity 3s infinite alternate;
 }
 @keyframes twinkleOpacity{ from{opacity:.25;} to{opacity:1;} }
 
+/* Capas de profundidad */
 .star.near{ z-index:3; filter: drop-shadow(0 0 6px rgba(255,255,255,.65)); }
 .star.mid { z-index:2; filter: drop-shadow(0 0 4px rgba(255,255,255,.45)); }
 .star.far { z-index:1; filter: drop-shadow(0 0 2px rgba(255,255,255,.25)); opacity:.85; }
 
-/* Rush: el JS sube estas variables 40–59s */
+/* RUSH 40–55s: el JS sube estas variables */
 .rush .star.near{ --star-scale: var(--rush-scale-near); opacity: var(--rush-opacity); }
 .rush .star.mid { --star-scale: var(--rush-scale-mid);  opacity: calc(var(--rush-opacity) - .05); }
 .rush .star.far { --star-scale: var(--rush-scale-far);  opacity: calc(var(--rush-opacity) - .10); }
 
-.preboom .star.near{ filter: drop-shadow(0 0 10px rgba(255,255,255,.85)) blur(.3px); }
+/* Suave “aumento de velocidad” visual antes del boom */
+.preboom .star.near{
+  filter: drop-shadow(0 0 10px rgba(255,255,255,.85)) blur(.3px);
+}
 
 /* =========================
-   NEBULOSAS
+   NEBULOSAS / GALAXIA
 ========================= */
 .nebula{
-  position:absolute; width:600px; height:600px; border-radius:50%;
-  filter: blur(100px); opacity:0; z-index:1;
-  animation: float 28s infinite alternate ease-in-out, pulse 12s infinite ease-in-out;
-  will-change: transform, opacity; transition: opacity 2.2s ease;
+  position:absolute;
+  width: 600px; height: 600px;
+  border-radius: 50%;
+  filter: blur(100px);
+  opacity:0; z-index:1;
+  animation:
+    float 28s infinite alternate ease-in-out,
+    pulse 12s infinite ease-in-out;
+  will-change: transform, opacity;
+  transition: opacity 2.2s ease; /* entrada suave */
 }
 .nebula.blue{ background: radial-gradient(circle, var(--blue), transparent 70%); }
 .nebula.pink{ background: radial-gradient(circle, var(--pink), transparent 70%); }
 .nebula.gold{ background: radial-gradient(circle, var(--gold), transparent 70%); }
-.nebula.pos-1{ top:10%; left:18%; } .nebula.pos-2{ bottom:14%; right:22%; }
-.nebula.pos-3{ top:48%; left:65%; } .nebula.pos-4{ top:22%; right:8%; }
-@keyframes float{ from{transform:translate(0,0) rotate(0) scale(1);} to{transform:translate(60px,-40px) rotate(8deg) scale(1.08);} }
-@keyframes pulse{ 0%,100%{opacity:.22;} 50%{opacity:.50;} }
+
+.nebula.pos-1{ top:10%; left:18%; }
+.nebula.pos-2{ bottom:14%; right:22%; }
+.nebula.pos-3{ top:48%; left:65%; }
+.nebula.pos-4{ top:22%; right:8%; }
+
+@keyframes float{
+  from{ transform: translate(0,0) rotate(0deg) scale(1); }
+  to  { transform: translate(60px,-40px) rotate(8deg) scale(1.08); }
+}
+@keyframes pulse{
+  0%,100%{ opacity:.22; }
+  50%    { opacity:.50; }
+}
 .nebula.visible{ opacity:1; }
-.rush .nebula{ animation-play-state: paused; opacity:.9; }
+
+/* En rush, calmamos nebulosas para foco en estrellas */
+.rush .nebula{
+  animation-play-state: paused;
+  opacity: .9;
+}
 
 /* =========================
-   FUGACES
+   ESTRELLAS FUGACES
 ========================= */
 .shooting-star{
-  position:absolute; width:2px; height:110px; top:-120px; opacity:0; z-index:2;
-  background: linear-gradient(#fff, transparent); transform: rotate(-45deg);
+  position:absolute;
+  width:2px; height:110px;
+  background: linear-gradient(#fff, transparent);
+  transform: rotate(-45deg);
+  top:-120px; opacity:0;
   animation: fall 2s linear forwards;
+  z-index:2;
 }
 @keyframes fall{
-  0%{ transform: translate(0,0) rotate(-45deg); opacity:1; }
+  0%  { transform: translate(0,0) rotate(-45deg); opacity:1; }
   100%{ transform: translate(-420px,420px) rotate(-45deg); opacity:0; }
 }
 
 /* =========================
-   CONSTELACIONES
+   CONSTELACIONES (líneas)
 ========================= */
-#constellations{ position:fixed; inset:0; z-index:2; pointer-events:none; }
+#constellations{
+  position: fixed; inset:0;
+  z-index:2; pointer-events:none;
+}
 .const-line{
   position:absolute; height:1px;
   background: linear-gradient(90deg, transparent, rgba(255,255,255,.85), transparent);
@@ -166,21 +229,26 @@ body::after{
   opacity:.0; transform-origin: left center;
 }
 .const-line.draw{ animation: drawLine 3.2s ease forwards; }
-@keyframes drawLine{ 0%{opacity:0; transform:scaleX(0);} 20%{opacity:.9;} 100%{opacity:.35; transform:scaleX(1);} }
+@keyframes drawLine{
+  0%{ opacity:0; transform: scaleX(0); }
+  20%{ opacity:.9; }
+  100%{ opacity:.35; transform: scaleX(1); }
+}
 .const-line.fade{ transition: opacity 2s ease; opacity:0 !important; }
 
 /* =========================
    POLVO ESTELAR
 ========================= */
 #dust{
-  position:fixed; inset:0; z-index:1; pointer-events:none; opacity:.0;
+  position: fixed; inset:0; z-index:1; pointer-events:none; opacity:.0;
   background-image:
     radial-gradient(2px 2px at 20% 30%, rgba(255,255,255,.15) 40%, transparent 41%),
     radial-gradient(1.5px 1.5px at 60% 70%, rgba(255,255,255,.12) 40%, transparent 41%),
     radial-gradient(1.5px 1.5px at 80% 40%, rgba(255,255,255,.10) 40%, transparent 41%),
     radial-gradient(2px 2px at 35% 85%, rgba(255,255,255,.12) 40%, transparent 41%);
   background-repeat: repeat;
-  animation: drift 60s linear infinite; transition: opacity 2s ease;
+  animation: drift 60s linear infinite;
+  transition: opacity 2s ease;
 }
 #dust.visible{ opacity:.35; }
 @keyframes drift{
@@ -190,37 +258,82 @@ body::after{
 .rush #dust{ opacity:.4; }
 
 /* =========================
-   HALO + SUSURROS + CHISPAS
+   HALO + CHISPAS (visual)
 ========================= */
 #halo{
-  position:absolute; top:50%; left:50%; transform:translate(-50%,-50%);
-  width:70vmin; height:70vmin; pointer-events:none; z-index:9; opacity:0;
+  position:absolute;
+  top:50%; left:50%;
+  transform:translate(-50%,-50%);
+  width:70vmin; height:70vmin;
+  pointer-events:none;
+  z-index:9; opacity:0;
   background: radial-gradient(circle at 50% 50%,
-              rgba(180,200,255,0.28) 0%, rgba(120,160,255,0.18) 28%,
-              rgba(80,120,220,0.10) 48%, transparent 70%);
+              rgba(180,200,255,0.28) 0%,
+              rgba(120,160,255,0.18) 28%,
+              rgba(80,120,220,0.10) 48%,
+              transparent 70%);
   filter: blur(32px);
 }
-#halo.on{ animation: haloPulse 12s ease-in-out infinite; opacity: var(--halo-base-opacity); }
-#halo.boost{ transition: opacity .8s ease; opacity: var(--halo-boost-opacity); }
-@keyframes haloPulse{ 0%,100%{transform:translate(-50%,-50%) scale(1); opacity:.14;} 50%{transform:translate(-50%,-50%) scale(1.06); opacity:.20;} }
+#halo.on{
+  animation: haloPulse 12s ease-in-out infinite;
+  opacity: var(--halo-base-opacity);
+}
+#halo.boost{
+  transition: opacity .8s ease;
+  opacity: var(--halo-boost-opacity);
+}
+@keyframes haloPulse{
+  0%,100%{ transform:translate(-50%,-50%) scale(1);   opacity:.14; }
+  50%    { transform:translate(-50%,-50%) scale(1.06); opacity:.20; }
+}
 .rush #halo.on{ opacity: calc(var(--halo-base-opacity) + .05); }
 
-#escena #whisper{
-  display:block; margin-top:8px; font-size:clamp(.9rem,1.8vw,1.15rem);
-  opacity:0; letter-spacing:.4px; color:rgba(255,255,255,.85);
-  text-shadow:0 0 8px rgba(255,255,255,.35); transition:opacity .9s ease;
-}
-#escena #whisper.show{ opacity:.72; } #escena #whisper.hide{ opacity:0; }
-
+/* Chispa (click/press) — animación visual */
 .spark-pop{
-  position:absolute; border-radius:50%; background:#fff; z-index:3;
-  box-shadow: 0 0 8px #fff, 0 0 16px rgba(147,197,253,.85), 0 0 28px rgba(147,197,253,.55);
+  position: absolute;
+  border-radius: 50%;
+  background: #fff;
+  z-index: 3;
+  box-shadow:
+    0 0 8px #fff,
+    0 0 16px rgba(147,197,253,.85),
+    0 0 28px rgba(147,197,253,.55);
   animation: sparkPop .8s ease-out forwards;
 }
-@keyframes sparkPop{ 0%{transform:scale(1); opacity:1;} 60%{transform:scale(2.2); opacity:.9;} 100%{transform:scale(.2); opacity:0;} }
+@keyframes sparkPop{
+  0%   { transform: scale(1);   opacity:1; }
+  60%  { transform: scale(2.2); opacity:.9; }
+  100% { transform: scale(0.2); opacity:0; }
+}
 
 /* =========================
-   BOOM 59s
+   WARP (55–59s): estelas
+========================= */
+.star.no-twinkle { animation: none !important; }
+
+.star.streak{
+  /* La estrella se transforma en una estela vertical que rotamos y empujamos por JS */
+  width: 2px;                   /* línea delgada */
+  height: 60px;                 /* el JS la alarga dinámicamente 55–59s */
+  background: linear-gradient(to bottom, rgba(255,255,255,1), rgba(255,255,255,0));
+  border-radius: 0;
+  opacity: 1 !important;
+  box-shadow:
+    0 0 10px rgba(255,255,255,.95),
+    0 0 22px rgba(147,197,253,.75),
+    0 0 38px rgba(147,197,253,.45);
+  will-change: transform, height, opacity, filter;
+  transform-origin: top center;  /* la cola nace donde estaba la estrella */
+  filter: blur(.2px);
+}
+
+/* Intensidad ligeramente mayor justo antes del boom */
+.preboom .star.streak{
+  filter: blur(.3px);
+}
+
+/* =========================
+   BOOM 59s (flash + colapso)
 ========================= */
 #flash{
   position:fixed; inset:0; z-index:55; pointer-events:none;
@@ -230,7 +343,10 @@ body::after{
     rgba(255,255,255,0) 80%);
   opacity:1; transition:none;
 }
-@keyframes vignetteCollapse{ 0%{box-shadow: inset 0 0 0 0 rgba(0,0,0,0);} 100%{box-shadow: inset 0 0 120vmax 120vmax rgba(0,0,0,1);} }
+@keyframes vignetteCollapse{
+  0%  { box-shadow: inset 0 0 0 0 rgba(0,0,0,0); }
+  100%{ box-shadow: inset 0 0 120vmax 120vmax rgba(0,0,0,1); }
+}
 .boom body::after{ animation: vignetteCollapse 220ms ease forwards; }
 .boom #center, .boom #constellations, .boom #dust, .boom #halo,
 .boom .nebula, .boom .star, .boom .shooting-star{
@@ -244,12 +360,14 @@ body::after{
   position:fixed; bottom:24px; left:50%; transform:translateX(-50%);
   background:var(--ui-bg); border:1px solid var(--ui-bd); color:var(--ui-tx);
   padding:8px 14px; border-radius:20px; font-size:.95rem; letter-spacing:.2px;
-  opacity:0; pointer-events:none; z-index:40; transition:opacity .5s ease, transform .5s ease; backdrop-filter: blur(6px);
+  opacity:0; pointer-events:none; z-index:40;
+  transition:opacity .5s ease, transform .5s ease; backdrop-filter: blur(6px);
 }
 #hint.show{ opacity:1; transform:translateX(-50%) translateY(0); }
 
 #skipBtn{
-  position:fixed; right:18px; bottom:18px; padding:8px 12px; border-radius:999px;
+  position:fixed; right:18px; bottom:18px;
+  padding:8px 12px; border-radius:999px;
   background:var(--ui-bg); color:var(--ui-tx); border:1px solid var(--ui-bd);
   font-size:.95rem; cursor:pointer; z-index:60; display:none;
   transition: transform .2s ease, box-shadow .2s ease, background .2s ease; backdrop-filter: blur(6px);
@@ -261,19 +379,26 @@ body::after{
 /* =========================
    RESPONSIVE + ACCESIBILIDAD
 ========================= */
-@media (max-width: 1024px){ .nebula{ width:520px; height:520px; filter:blur(90px);} }
+@media (max-width: 1024px){
+  .nebula{ width:520px; height:520px; filter:blur(90px);}
+}
 @media (max-width: 820px){
   #titulo{ font-size: clamp(1.4rem, 3.4vw, 2.1rem); }
   #escena{ font-size: clamp(1rem, 2.4vw, 1.3rem); }
   .nebula{ width:460px; height:460px; filter:blur(80px); }
 }
+
+/* Reduce Motion: simplifica todo lo fuerte */
 @media (prefers-reduced-motion: reduce){
-  *{ animation-duration:.001ms !important; animation-iteration-count:1 !important; transition-duration:0ms !important; }
+  *{
+    animation-duration:.001ms !important;
+    animation-iteration-count:1 !important;
+    transition-duration:0ms !important;
+  }
   .nebula, .star, .shooting-star, #halo{ animation:none !important; }
   .rush .star, .rush .nebula{ transform:none !important; }
   #dust{ animation:none !important; }
 }
-
 
 
 
