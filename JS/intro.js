@@ -1,203 +1,200 @@
-// === Referencias ===
-const audio     = document.getElementById("musica");
-const titulo    = document.getElementById("titulo");
-const escenaDiv = document.getElementById("escena");
-const playBtn   = document.getElementById("playBtn");
-const starCanvas= document.getElementById("starCanvas");
-const ctx       = starCanvas.getContext("2d");
+/*************************
+ * Intro La La Land (PC)
+ * Timeline coreografiado
+ *************************/
 
-// === Utilidades ===
-const isMobile = window.matchMedia("(max-width: 768px)").matches;
+// --------- Selectores base ---------
+const $ = s => document.querySelector(s);
+const $$ = s => document.querySelectorAll(s);
 
-// Ajusta canvas a pantalla
-function resizeCanvas(){
-  starCanvas.width  = window.innerWidth;
-  starCanvas.height = window.innerHeight;
+const audio   = $("#musica");
+const btn     = $("#playBtn");
+const titulo  = $("#titulo");
+const escena  = $("#escena");
+const veil    = $("#veil");              // velo global (oscurecimiento)
+const dust    = $("#dust");              // polvo estelar
+const consts  = $("#constellations");    // contenedor de constelaciones
+
+// --------- Utilidades ---------
+function setVeil(value){ // value: 1 (negro total) -> 0 (sin velo)
+  document.documentElement.style.setProperty("--veil", String(value));
 }
-window.addEventListener("resize", resizeCanvas);
-resizeCanvas();
+function wait(ms){ return new Promise(r => setTimeout(r, ms)); }
 
-// Crea nebulosas por defecto si no existen en el HTML
-function ensureNebulas(){
-  let nebulas = document.querySelectorAll(".nebula");
-  if(nebulas.length === 0){
-    const specs = [
-      ["blue","pos-1"],
-      ["pink","pos-2"],
-      ["gold","pos-3"]
-    ];
-    specs.forEach(([tone,pos])=>{
-      const n = document.createElement("div");
-      n.className = `nebula ${tone} ${pos}`;
-      document.body.appendChild(n);
-    });
-  }
-}
-ensureNebulas();
-
-// === Estrellas en PC (divs) ===
-function createStarDivs(count=140){
+// --------- Estrellas (divs, PC) ---------
+function createStars(count = 160){
   for(let i=0;i<count;i++){
-    const star = document.createElement("div");
-    star.className = "star";
-    star.style.top  = (Math.random()*window.innerHeight)+"px";
-    star.style.left = (Math.random()*window.innerWidth)+"px";
-    star.style.animationDuration = (2+Math.random()*3)+"s";
-    document.body.appendChild(star);
-    // Aparecen con retardo aleatorio (no todas de golpe)
-    setTimeout(()=>{ star.style.opacity = 1; }, 800 + Math.random()*1600);
+    const s = document.createElement("div");
+    s.className = "star";
+    s.style.top  = (Math.random()*window.innerHeight) + "px";
+    s.style.left = (Math.random()*window.innerWidth) + "px";
+    s.style.animationDuration = (2 + Math.random()*3) + "s";
+    // ocultas al inicio; luego haremos fade-in escalonado
+    document.body.appendChild(s);
+    setTimeout(() => { s.style.opacity = 1; }, 1200 + Math.random()*1800); // entrada no brusca
   }
 }
 
-// Destellos “rítmicos” en algunas estrellas (PC)
-let sparkleTimerPC = null;
-function startSparklePC(){
-  const all = () => document.querySelectorAll(".star");
-  sparkleTimerPC = setInterval(()=>{
-    const stars = all();
-    if(stars.length===0) return;
-    // Elegimos 4-6 estrellas random
-    const n = 4 + Math.floor(Math.random()*3);
+let sparkleTimer = null;
+function startSparkle(){
+  sparkleTimer = setInterval(()=>{
+    const stars = $$(".star");
+    if(!stars.length) return;
+    const n = 4 + Math.floor(Math.random()*3); // 4-6 estrellas
     for(let i=0;i<n;i++){
       const s = stars[Math.floor(Math.random()*stars.length)];
       if(!s) continue;
       s.classList.add("sparkle");
-      setTimeout(()=> s.classList.remove("sparkle"), 600);
+      setTimeout(()=> s.classList.remove("sparkle"), 650);
     }
-  }, 3800); // ~pulso regular
+  }, 3800); // ritmo suave (~pulso)
 }
 
-// === Estrellas en móvil (canvas) ===
-let stars = [];
-function initCanvasStars(count = isMobile ? 90 : 70){
-  stars = [];
-  for(let i=0;i<count;i++){
-    stars.push({
-      x: Math.random()*starCanvas.width,
-      y: Math.random()*starCanvas.height,
-      r: Math.random()*1.6 + 0.4,
-      o: Math.random()*0.9 + 0.1,
-      v: (Math.random()*0.04)+0.01 // velocidad de “twinkle”
+// --------- Nebulosas ---------
+function showNebulas(){
+  // Si no existen en el HTML, crea las 3 capas
+  let nebulas = $$(".nebula");
+  if(!nebulas.length){
+    [["blue","pos-1"],["pink","pos-2"],["gold","pos-3"]].forEach(([tone,pos])=>{
+      const n = document.createElement("div");
+      n.className = `nebula ${tone} ${pos}`;
+      document.body.appendChild(n);
     });
+    nebulas = $$(".nebula");
   }
-}
-
-let rafId = null;
-function drawStars(){
-  ctx.clearRect(0,0,starCanvas.width, starCanvas.height);
-  for(const s of stars){
-    // twinkle
-    s.o += (Math.random()-0.5)*s.v;
-    if(s.o<0.12) s.o = 0.12;
-    if(s.o>1.0)  s.o = 1.0;
-
-    ctx.globalAlpha = s.o;
-    ctx.beginPath();
-    ctx.arc(s.x, s.y, s.r, 0, Math.PI*2);
-    ctx.fillStyle = "#fff";
-    ctx.fill();
-  }
-  rafId = requestAnimationFrame(drawStars);
-}
-
-let sparkleTimerCanvas = null;
-function startSparkleCanvas(){
-  sparkleTimerCanvas = setInterval(()=>{
-    if(stars.length===0) return;
-    // Destella 5-7 estrellas
-    const n = 5 + Math.floor(Math.random()*3);
-    for(let i=0;i<n;i++){
-      const idx = Math.floor(Math.random()*stars.length);
-      const s = stars[idx];
-      const oldR = s.r, oldO = s.o;
-      s.r = oldR*1.9;
-      s.o = 1.0;
-      setTimeout(()=>{
-        s.r = oldR;
-        s.o = oldO;
-      }, 520);
-    }
-  }, 3800);
-}
-
-// === Nebulosas: fade-in escalonado ===
-function fadeInNebulas(){
-  const nebulas = document.querySelectorAll(".nebula");
-  nebulas.forEach((neb,i)=>{
-    // Pequeño “stagger” y delay de animación para variedad
-    neb.style.animationDelay = `${i*1.2}s, ${i*0.6}s`; // float, pulse
-    setTimeout(()=>{ neb.style.opacity = 1; }, 1400 + i*900);
+  // Fade-in escalonado (sin pops)
+  nebulas.forEach((n,i)=>{
+    setTimeout(()=> n.classList.add("visible"), 5000 + i*1200); // 5.0s, 6.2s, 7.4s aprox
   });
 }
 
-// === Estrella fugaz (solo PC para cuidar performance móvil) ===
+// --------- Estrellas fugaces (PC) ---------
 function shootingStar(afterMs){
-  if(isMobile) return;
   setTimeout(()=>{
     const s = document.createElement("div");
     s.className = "shooting-star";
-    s.style.left = (Math.random()*window.innerWidth)+"px";
+    s.style.left = (Math.random()*window.innerWidth) + "px";
     document.body.appendChild(s);
     setTimeout(()=> s.remove(), 2100);
   }, afterMs);
 }
 
-// === Secuencia al presionar play ===
-playBtn.addEventListener("click", ()=>{
-  // Música
+// --------- Constelaciones (líneas finas) ---------
+function drawConstellation({top, left, length, angleDeg, life=3800}){
+  const line = document.createElement("div");
+  line.className = "const-line";
+  line.style.top = top + "px";
+  line.style.left = left + "px";
+  line.style.width = length + "px";
+  line.style.transform = `rotate(${angleDeg}deg) scaleX(0)`; // empieza sin dibujar
+  consts.appendChild(line);
+  // animar “dibujo”
+  requestAnimationFrame(()=> line.classList.add("draw"));
+  // desvanecer y quitar
+  setTimeout(()=> line.classList.add("fade"), life);
+  setTimeout(()=> line.remove(), life + 2200);
+}
+
+// --------- Polvo estelar ---------
+function activateDust(){
+  if(dust) dust.classList.add("visible");
+}
+
+// --------- Textos ---------
+function showTitle(){
+  titulo.classList.add("show"); // fade-in + zoom lento (CSS)
+}
+function showSceneMsg(){
+  escena.textContent = "🌌 Nuestro viaje comienza...";
+  escena.classList.add("show");
+}
+function fadeOutTexts(){
+  // Se pidió que se vaya también el título junto al mensaje
+  titulo.classList.add("fade-out");
+  escena.classList.add("fade-out");
+}
+
+// --------- Rampa de luz global (oscuro -> luminoso) ---------
+async function rampBrightness(){
+  // 0–2s noche cerrada (se mantiene en 1.0)
+  setVeil(1.0);
+  await wait(2000);
+  // 2–5s sube muy poco la luz
+  setVeil(0.70);
+  await wait(3000);
+  // 5–15s otra subida leve
+  setVeil(0.55);
+  await wait(10000);
+  // 15–35s baja más el velo (más luz)
+  setVeil(0.35);
+  await wait(20000);
+  // 35–60s llega al brillo destino
+  setVeil(0.12);
+}
+
+// --------- Timeline principal ---------
+async function startTimeline(){
+  // Estrellas base
+  createStars(170);
+  startSparkle();
+
+  // Nebulosas + Título
+  showNebulas();
+  setTimeout(showTitle, 7000);   // 7.0–11.0s
+
+  // Polvo estelar y mensaje secundario (15s)
+  setTimeout(activateDust, 15000);
+  setTimeout(showSceneMsg, 15000);
+
+  // Constelaciones A y B (22–38s aprox.)
+  setTimeout(()=>{
+    drawConstellation({
+      top: window.innerHeight*0.28,
+      left: window.innerWidth*0.18,
+      length: window.innerWidth*0.22,
+      angleDeg: 12
+    });
+  }, 22000);
+  setTimeout(()=>{
+    drawConstellation({
+      top: window.innerHeight*0.62,
+      left: window.innerWidth*0.58,
+      length: window.innerWidth*0.18,
+      angleDeg: -18
+    });
+  }, 30000);
+
+  // Estrellas fugaces pequeñas (29–45s)
+  shootingStar(29000);
+  shootingStar(44000);
+
+  // Despedida de textos (50–53s)
+  setTimeout(fadeOutTexts, 50000);
+}
+
+// --------- Play handler ---------
+btn.addEventListener("click", async ()=>{
   audio.load();
   audio.volume = 0.85;
-  audio.play().then(()=>{
-    playBtn.style.display = "none";
 
-    // Estrellas
-    if(isMobile){
-      initCanvasStars();
-      drawStars();
-      startSparkleCanvas();
-    }else{
-      createStarDivs(150);
-      startSparklePC();
-    }
+  try{
+    await audio.play();
+    btn.style.display = "none";
 
-    // Nebulosas, luego Título
-    fadeInNebulas();
-    setTimeout(()=>{
-      titulo.style.opacity  = 1;
-      titulo.style.transform= "scale(1)";
-    }, 2600);
+    // Rampa de luz global (en paralelo)
+    rampBrightness();
 
-    // Estrellas fugaces (PC)
-    shootingStar(6500);
-    shootingStar(16000);
-    shootingStar(29500);
-    shootingStar(43000);
-  }).catch(err=>{
+    // Coreografía visual
+    startTimeline();
+
+  }catch(err){
     console.error("Error al reproducir audio:", err);
-  });
-});
-
-// === Texto sincronizado con la música ===
-audio.addEventListener("timeupdate", ()=>{
-  const t = audio.currentTime;
-  if(t >= 15 && t < 50){
-    if(escenaDiv.textContent !== "🌌 Nuestro viaje comienza..."){
-      escenaDiv.textContent = "🌌 Nuestro viaje comienza...";
-    }
-    escenaDiv.style.opacity = 1;
-  }else{
-    escenaDiv.style.opacity = 0;
   }
 });
 
-// (Opcional) Cuando termine el audio, por ahora no redirigimos.
-// audio.addEventListener("ended", ()=>{ /* luego podemos hacer fade-out o redirigir */ });
-
-// === Limpieza al salir (por si cambias de vistaSPA, etc.) ===
+// --------- Limpieza por si cambias de página ---------
 window.addEventListener("beforeunload", ()=>{
-  if(rafId) cancelAnimationFrame(rafId);
-  if(sparkleTimerPC) clearInterval(sparkleTimerPC);
-  if(sparkleTimerCanvas) clearInterval(sparkleTimerCanvas);
+  if(sparkleTimer) clearInterval(sparkleTimer);
 });
 
 
