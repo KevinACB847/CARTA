@@ -305,6 +305,8 @@ body::after{
   #escena{ font-size: clamp(1rem, 2.4vw, 1.3rem); }
   .nebula{ width:460px; height:460px; filter:blur(80px); }
 }
+#playBtn{ position:fixed; z-index:9999 !important; pointer-events:auto; }
+#veil, #halo, #dust, #constellations, .nebula, .star { pointer-events:none !important; }
 
 
 
