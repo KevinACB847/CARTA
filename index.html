@@ -2,40 +2,60 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1.0, maximum-scale=1.0"
+  />
   <title>Intro La La Land</title>
+
+  <!-- Estilos -->
   <link rel="stylesheet" href="CSS/intro.css" />
+
+  <!-- Meta opcional para colores del navegador móvil -->
+  <meta name="theme-color" content="#000000" />
 </head>
 <body>
-  <!-- Audio principal -->
-  <audio id="musica" src="music/planetarium.mp3"></audio>
+  <!-- Audio principal (se inicia con el botón para cumplir políticas) -->
+  <audio id="musica" src="music/planetarium.mp3" preload="auto"></audio>
 
-  <!-- Textos centrados -->
-  <div id="center">
+  <!-- Contenido centrado -->
+  <div id="center" role="region" aria-label="Presentación">
     <div id="titulo">✨ Un viaje musical inspirado en La La Land ✨</div>
     <div id="escena"></div>
   </div>
 
   <!-- Capas de efectos (no capturan clics) -->
-  <div id="constellations"></div>  <!-- Constelaciones generadas por JS -->
-  <div id="dust"></div>            <!-- Polvo estelar (JS activa .visible) -->
-  <div id="halo"></div>            <!-- Halo central que “respira” -->
+  <div id="constellations" aria-hidden="true"></div>  <!-- Líneas de constelaciones -->
+  <div id="dust" aria-hidden="true"></div>            <!-- Polvo estelar -->
+  <div id="halo" aria-hidden="true"></div>            <!-- Halo central -->
 
-  <!-- Nebulosas / galaxia -->
-  <div class="nebula blue pos-1"></div>
-  <div class="nebula pink pos-2"></div>
-  <div class="nebula gold pos-3"></div>
+  <!-- Nebulosas (el JS también puede crearlas si no estuvieran) -->
+  <div class="nebula blue pos-1" aria-hidden="true"></div>
+  <div class="nebula pink pos-2" aria-hidden="true"></div>
+  <div class="nebula gold pos-3" aria-hidden="true"></div>
 
-  <!-- Velo global de oscuridad (rampa de luz controlada por JS) -->
-  <div id="veil"></div>
+  <!-- Velo global de oscuridad (controlado por variables CSS) -->
+  <div id="veil" aria-hidden="true"></div>
 
-  <!-- Botón inicial (va al final para evitar que algo lo tape) -->
-  <button id="playBtn">▶ Iniciar</button>
+  <!-- Botón inicial (anti-bloqueo de autoplay) -->
+  <button id="playBtn" type="button" aria-label="Iniciar experiencia">
+    ▶ Iniciar
+  </button>
 
-  <!-- Coreografía -->
+  <!-- UI adicional (hint, skip, flash) la inyecta el JS en runtime -->
+
+  <!-- JS principal (timeline + rush + boom + interacciones) -->
   <script src="JS/intro.js"></script>
+
+  <!-- Fallback sin JS -->
+  <noscript>
+    <div style="position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:#000;color:#fff;font-family:sans-serif;text-align:center;padding:24px;">
+      Esta experiencia requiere JavaScript. Por favor, habilítalo para continuar.
+    </div>
+  </noscript>
 </body>
 </html>
+
 
 
 
