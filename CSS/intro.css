@@ -27,7 +27,7 @@ body {
   transform: translate(-50%, -50%) scale(1.1);
 }
 
-/* Contenedor central para textos */
+/* Contenedor de textos */
 #center {
   position: absolute;
   top: 50%;
@@ -58,7 +58,7 @@ body {
   text-shadow: 0 0 10px rgba(255,255,255,0.6);
 }
 
-/* Estrellas divs (solo PC) */
+/* Estrellas divs (PC) */
 .star {
   position: absolute;
   width: 2px;
