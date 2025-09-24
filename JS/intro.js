@@ -5,7 +5,7 @@ const playBtn = document.getElementById("playBtn");
 const starCanvas = document.getElementById("starCanvas");
 const ctx = starCanvas.getContext("2d");
 
-// Resize canvas
+// Ajustar canvas
 function resizeCanvas() {
   starCanvas.width = window.innerWidth;
   starCanvas.height = window.innerHeight;
@@ -13,7 +13,7 @@ function resizeCanvas() {
 window.addEventListener("resize", resizeCanvas);
 resizeCanvas();
 
-// Detect mobile
+// Detectar móvil
 const isMobile = window.innerWidth < 768;
 
 // Crear estrellas en PC
@@ -116,5 +116,6 @@ audio.addEventListener("timeupdate", () => {
     escenaDiv.style.opacity = 0;
   }
 });
+
 
 
