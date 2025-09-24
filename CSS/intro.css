@@ -33,7 +33,7 @@ body{
   background: rgba(0,0,0, calc(var(--veil)));
   pointer-events:none;
   z-index: 50; /* por encima de todo salvo el botón */
-  transition: background 2.5s ease; /* la rampa de luz será suave y podemos actualizarla vía JS en varios pasos */
+  transition: background 2.5s ease; /* rampa de luz */
 }
 /* Viñeta adicional para bordes más oscuros */
 body::after{
@@ -146,7 +146,7 @@ body::after{
 .nebula.pink{ background: radial-gradient(circle, var(--pink), transparent 70%); }
 .nebula.gold{ background: radial-gradient(circle, var(--gold), transparent 70%); }
 
-/* Posiciones sugeridas (puedes combinarlas/liberarlas) */
+/* Posiciones sugeridas */
 .nebula.pos-1{ top:10%; left:18%; }
 .nebula.pos-2{ bottom:14%; right:22%; }
 .nebula.pos-3{ top:48%; left:65%; }
@@ -160,7 +160,6 @@ body::after{
   0%,100%{ opacity:.22; }
   50%    { opacity:.50; }
 }
-
 /* Activación de visibilidad que pondrá el JS en escalonamiento */
 .nebula.visible{ opacity:1; }
 
@@ -195,7 +194,7 @@ body::after{
   opacity:.0;
   transform-origin: left center;
 }
-/* animación para “dibujar” la línea (JS añade esta clase y setea top/left/width/angle) */
+/* animación para “dibujar” la línea */
 .const-line.draw{
   animation: drawLine 3.2s ease forwards;
 }
@@ -204,7 +203,7 @@ body::after{
   20%{ opacity:.9; }
   100%{ opacity:.35; transform: scaleX(1); }
 }
-/* desvanecer constelación cuando toque */
+/* desvanecer constelación */
 .const-line.fade{
   transition: opacity 2s ease; opacity:0 !important;
 }
@@ -227,6 +226,72 @@ body::after{
 @keyframes drift{
   from{ background-position: 0 0, 0 0, 0 0, 0 0; }
   to  { background-position: 600px 240px, 400px 200px, 500px 220px, 300px 160px; }
+}
+
+/* =========================
+   EXTRAS ELEGANTES (halo, susurros, spark-click)
+========================= */
+
+/* HALO CENTRAL que “respira” (detrás del título) */
+#halo{
+  position:absolute;
+  top:50%; left:50%;
+  transform:translate(-50%,-50%);
+  width:70vmin; height:70vmin;
+  pointer-events:none;
+  z-index:9; /* detrás de #center (z=10) */
+  opacity:0; /* se enciende por JS */
+  background: radial-gradient(circle at 50% 50%,
+              rgba(180,200,255,0.28) 0%,
+              rgba(120,160,255,0.18) 28%,
+              rgba(80,120,220,0.10) 48%,
+              transparent 70%);
+  filter: blur(32px);
+}
+#halo.on{
+  animation: haloPulse 12s ease-in-out infinite;
+  opacity: .16;
+}
+#halo.boost{
+  transition: opacity .8s ease;
+  opacity: .22;
+}
+@keyframes haloPulse{
+  0%,100%{ transform:translate(-50%,-50%) scale(1);   opacity:.14; }
+  50%    { transform:translate(-50%,-50%) scale(1.06); opacity:.20; }
+}
+
+/* “SUSURROS” debajo del mensaje principal */
+#escena #whisper{
+  display:block;
+  margin-top:8px;
+  font-size: clamp(.9rem, 1.8vw, 1.15rem);
+  opacity:0;
+  letter-spacing:.4px;
+  color: rgba(255,255,255,.85);
+  text-shadow: 0 0 8px rgba(255,255,255,.35);
+  transition: opacity .9s ease;
+}
+#escena #whisper.show{ opacity: .72; }
+#escena #whisper.hide{ opacity: 0;   }
+
+/* DESTELLOS EFÍMEROS generados por click */
+.spark-pop{
+  position: absolute;
+  width: 3px; height: 3px;
+  border-radius: 50%;
+  background: #fff;
+  z-index: 3;
+  box-shadow:
+    0 0 8px #fff,
+    0 0 16px rgba(147,197,253,.85),
+    0 0 28px rgba(147,197,253,.55);
+  animation: sparkPop .8s ease-out forwards;
+}
+@keyframes sparkPop{
+  0%   { transform: scale(1);   opacity:1; }
+  60%  { transform: scale(2.2); opacity:.9; }
+  100% { transform: scale(0.2); opacity:0; }
 }
 
 /* =========================
