@@ -30,12 +30,12 @@ const SETTINGS = {
   T_RUSH_START_MS   : 40000,
   T_WARP_START_MS   : 58800,  // 58.8s (Canvas warp ~1.2s)
   T_PREBOOM_MS      : 59500,  // 59.5s (tensión previa)
-  T_BOOM_MS         : 60900,  // BOOM levemente más tarde (ajusta aquí)
+  T_BOOM_MS         : 61000,  // BOOM levemente más tarde (ajusta aquí)
 
   // Beats sincronizados alrededor del título (54–59s)
   T_STAR_BEATS_START_MS : 54000, // inicio de “tu tu…”
   STAR_BEATS_COUNT      : 14,    // 14 golpes
-  STAR_BEATS_WINDOW_MS  : 5900,  // 54.0 → 59.0s (reparte 14)
+  STAR_BEATS_WINDOW_MS  : 6100,  // 54.0 → 59.0s (reparte 14)
   STAR_BEAT_DURATION_MS : 280,   // duración del pulso de cada estrella
 
   // Rampa de luz del velo
