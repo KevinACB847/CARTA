@@ -9,15 +9,18 @@
 <body>
   <audio id="musica" src="music/planetarium.mp3"></audio>
 
-  <div id="titulo">✨ Un viaje musical inspirado en La La Land ✨</div>
-  <div id="escena"></div>
-  <button id="playBtn">▶ Iniciar</button>
+  <!-- Contenedor centrado -->
+  <div id="center">
+    <div id="titulo">✨ Un viaje musical inspirado en La La Land ✨</div>
+    <div id="escena"></div>
+  </div>
 
+  <button id="playBtn">▶ Iniciar</button>
   <canvas id="starCanvas"></canvas>
 
-  <!-- Nebulosas solo en PC -->
-  <div class="nebula pc-only"></div>
-  <div class="nebula pc-only"></div>
+  <!-- Nebulosas -->
+  <div class="nebula"></div>
+  <div class="nebula"></div>
 
   <script src="JS/intro.js"></script>
 </body>
