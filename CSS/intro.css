@@ -3,6 +3,7 @@
    - RUSH 40–55s (escala por variable)
    - WARP 58.8–60.0s (Canvas, fluido ~1.2s)
    - BOOM 60.0s (flash + blackout)
+   - Beats 54–59s (destellos puntuales alrededor del título)
    - Hint, Skip, Responsive, Accesibilidad
    ========================================================= */
 
@@ -138,6 +139,18 @@ body::after{
 .star.near{ z-index:3; filter: drop-shadow(0 0 6px rgba(255,255,255,.65)); }
 .star.mid { z-index:2; filter: drop-shadow(0 0 4px rgba(255,255,255,.45)); }
 .star.far { z-index:1; filter: drop-shadow(0 0 2px rgba(255,255,255,.25)); opacity:.85; }
+
+/* === Beats 54–59s: destello puntual sincronizado === */
+.star.beat{
+  animation: none !important;             /* pausa twinkle */
+  opacity: 1 !important;
+  transform: scale(2.1);                  /* agranda un poco */
+  box-shadow:
+    0 0 10px #fff,
+    0 0 22px rgba(147,197,253,.75),
+    0 0 38px rgba(147,197,253,.45);
+  transition: transform 160ms ease, box-shadow 160ms ease, opacity 160ms ease;
+}
 
 /* RUSH 40–55s */
 .rush .star.near{ --star-scale: var(--rush-scale-near); opacity: var(--rush-opacity); }
@@ -319,5 +332,4 @@ body::after{
   .rush .star, .rush .nebula{ transform:none !important; }
   #dust{ animation:none !important; }
 }
-
 
