@@ -23,7 +23,7 @@ const SETTINGS = {
   T_SHOOT_2_MS      : 44000,
   T_TEXTS_FADE_MS   : 50000,
   T_RUSH_START_MS   : 40000,
-  T_WARP_START_MS   : 56000,  // empieza más tarde para evitar carga larga
+  T_WARP_START_MS   : 55500,  // empieza más tarde para evitar carga larga
   T_PREBOOM_MS      : 58800,
   T_BOOM_MS         : 59000,  // blackout
 
@@ -50,8 +50,8 @@ const SETTINGS = {
   // WARP (estelas + empuje radial)
   WARP_DURATION_MS : 2500,  // ↓ antes 4000 (más corto e intenso)
   WARP_LEN_BASE    : 30,    // px
-  WARP_LEN_MAX     : 220,   // px (sube a 260/300 si quieres MÁS)
-  WARP_PUSH_FACTOR : 0.45,  // 45% del tamaño mayor de la pantalla
+  WARP_LEN_MAX     : 260,   // px (sube a 260/300 si quieres MÁS)
+  WARP_PUSH_FACTOR : 0.50,  // 45% del tamaño mayor de la pantalla
 
   // Chispas (clic / mantener)
   SPARK_CLICK_MIN  : 8,
