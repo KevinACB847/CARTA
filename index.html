@@ -2,78 +2,34 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8">
-  <title>Viaje La La Land</title>
-  <style>
-    body {
-      background: #000;
-      color: #fff;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      height: 100vh;
-      margin: 0;
-      font-family: Arial, sans-serif;
-      flex-direction: column;
-    }
-    #escena {
-      font-size: 1.5rem;
-      margin-top: 20px;
-    }
-    button {
-      margin-top: 20px;
-      padding: 10px 20px;
-      font-size: 1rem;
-    }
-  </style>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+  <title>Intro La La Land</title>
+  <link rel="stylesheet" href="CSS/intro.css">
 </head>
 <body>
-
-  <!-- Reproductor -->
   <audio id="musica" src="music/planetarium.mp3"></audio>
 
-  <h1>🌌 Viaje musical La La Land</h1>
-  <div id="escena">Esperando inicio...</div>
-  <button id="playBtn">▶️ Play</button>
-  <button id="pauseBtn">⏸️ Pause</button>
+  <!-- Contenedor centrado -->
+  <div id="center">
+    <div id="titulo">✨ Un viaje musical inspirado en La La Land ✨</div>
+    <div id="escena"></div>
+  </div>
 
-  <script>
-    const audio = document.getElementById("musica");
-    const escenaDiv = document.getElementById("escena");
+  <!-- Botón inicial -->
+  <button id="playBtn">▶ Iniciar</button>
 
-    document.getElementById("playBtn").addEventListener("click", () => {
-      audio.play().then(() => {
-        escenaDiv.textContent = "🎶 Música iniciada...";
-      }).catch(err => {
-        escenaDiv.textContent = "⚠️ Error: el navegador bloqueó la reproducción";
-        console.error(err);
-      });
-    });
+  <!-- Fondo estelar -->
+  <canvas id="starCanvas"></canvas>
 
-    document.getElementById("pauseBtn").addEventListener("click", () => {
-      audio.pause();
-      escenaDiv.textContent = "⏸️ Música pausada";
-    });
+  <!-- Nebulosas -->
+  <div class="nebula"></div>
+  <div class="nebula"></div>
 
-    // Detectar en qué segundo está la canción
-    audio.addEventListener("timeupdate", () => {
-      const t = audio.currentTime;
-
-      if (t < 61) {
-        escenaDiv.textContent = "Escena 1: Introducción lenta 🌙";
-      } else if (t < 145) {
-        escenaDiv.textContent = "Escena 2: Preparación del viaje ✨";
-      } else if (t < 147) {
-        escenaDiv.textContent = "Escena 3: Silencio... calma antes del boom 🤫";
-      } else if (t < 238) {
-        escenaDiv.textContent = "Escena 4: Clímax épico 🌟🎇";
-      } else {
-        escenaDiv.textContent = "Escena 5: Cierre melancólico 💫";
-      }
-    });
-  </script>
-
+  <script src="JS/intro.js"></script>
 </body>
 </html>
+
+
 
 
 
