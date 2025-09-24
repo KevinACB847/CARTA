@@ -1,404 +1,545 @@
-/* =========================================================
-   INTRO LA LA LAND — CSS COMPLETO (Optimizado)
-   - RUSH 40–55s (escala por variable)
-   - WARP 55–59s (estelas GPU-friendly)
-   - BOOM 59s (flash + colapso + blackout)
-   - Hint, Skip, Responsive, Accesibilidad
-   - Rendimiento: sombras/blur moderados y transform GPU
-   ========================================================= */
+/**************************************************************
+ * INTRO LA LA LAND — JS (Canvas Warp + DEV HUD)
+ * - RUSH 40–55s (escala por capas)
+ * - WARP 58.8–60.0s (Canvas fluido ~1.2s)
+ * - BOOM 60.0s (flash + blackout)
+ * - Tester de tiempo: ver y saltar a cualquier marca
+ * - Clic = ráfaga | Mantener = lluvia
+ **************************************************************/
 
-/* =========================
-   VARIABLES & BASE
-========================= */
-:root{
-  --bg1:#02030a; --bg2:#0a1030;
+/* ============================================================
+   [A] AJUSTES RÁPIDOS
+   ============================================================ */
+const SETTINGS = {
+  // Tiempos clave (ms)
+  T_SHOW_TITLE_MS   : 7000,
+  T_INTERACTIONS_MS : 10000,
+  T_HALO_ON_MS      : 12000,
+  T_DUST_MSG_MS     : 15000,
+  T_WHISPERS_MS     : 18000,
+  T_CONST_1_MS      : 22000,
+  T_CONST_2_MS      : 30000,
+  T_SHOOT_1_MS      : 29000,
+  T_SHOOT_2_MS      : 44000,
 
-  /* Tonos nebulosas */
-  --blue:rgba(147,197,253,0.30);
-  --pink:rgba(244,114,182,0.30);
-  --gold:rgba(255,235,200,0.22);
+  // Texto se va entre 56–58s (fade 2.0s en CSS)
+  T_TEXTS_FADE_MS   : 56000,
 
-  /* Estrellas */
-  --star-glow: rgba(255,255,255,0.85);
+  // Rush → Warp → Boom (final dramático 59–60)
+  T_RUSH_START_MS   : 40000,
+  T_WARP_START_MS   : 58800,  // 58.8s (Canvas warp ~1.2s)
+  T_PREBOOM_MS      : 59500,  // 59.5s (tensión)
+  T_BOOM_MS         : 60000,  // 60.0s (flash+negro)
 
-  /* Velo global (rampa de luz) → 1 = negro total, 0 = sin velo */
-  --veil: 1;
+  // Rampa de luz del velo
+  RAMP: [
+    { t:    0, veil: 1.00 },
+    { t: 2000, veil: 0.70 },
+    { t: 5000, veil: 0.55 },
+    { t:15000, veil: 0.35 },
+    { t:35000, veil: 0.12 },
+  ],
 
-  /* RUSH (controlado por JS 40–55s) */
-  --rush-scale-near: 1;   /* 1 → ~2.4–2.8 */
-  --rush-scale-mid:  1;   /* 1 → ~1.7–2.0 */
-  --rush-scale-far:  1;   /* 1 → ~1.2–1.3 */
-  --rush-translate:  0px; /* adorno leve */
-  --rush-opacity:    1;
+  // Estrellas DOM (ligeras para FPS)
+  STAR_TOTAL : 160,
+  STAR_FAR   : 0.42,
+  STAR_MID   : 0.34,
+  STAR_NEAR  : 0.24,
 
-  /* HALO */
-  --halo-base-opacity: .16;
-  --halo-boost-opacity: .22;
+  // RUSH máximos
+  RUSH_MAX_SCALE_NEAR : 2.4,
+  RUSH_MAX_SCALE_MID  : 1.7,
+  RUSH_MAX_SCALE_FAR  : 1.2,
 
-  /* UI */
-  --ui-bg: rgba(0,0,0,.45);
-  --ui-bd: rgba(255,255,255,.35);
-  --ui-tx: #fff;
+  // Canvas WARP (fluido y natural, corto e intenso)
+  WARP_DURATION_MS : 1200,   // ~1.2s (ajusta 1000–1500)
+  WARP_PARTICLES   : 650,    // cantidad de partículas
+  WARP_SPREAD      : 0.9,    // distribución radial (0–1)
+  WARP_NOISE       : 0.18,   // curvatura/ruido de trayectoria
+  WARP_TAIL        : 0.65,   // longitud de cola relativa (0–1)
+  WARP_FADE        : 0.85,   // desvanecido global
 
-  /* BOOM flash */
-  --flash-opacity: 0;
-  --flash-duration: 120ms;
-}
+  // Chispas (clic / mantener)
+  SPARK_CLICK_MIN  : 10,
+  SPARK_CLICK_MAX  : 16,
+  SPARK_SIZE_MIN   : 4,
+  SPARK_SIZE_MAX   : 12,
+  SPARK_PRESS_EVERY: 75,
 
-*{ box-sizing: border-box; }
-html,body{ height:100%; }
+  // Audio
+  AUDIO_VOLUME     : 0.85,
+  AUDIO_FADE_STEPS : 6,
+  AUDIO_FADE_DELAY : 28,
 
-body{
-  margin:0; height:100vh; overflow:hidden; color:#fff;
-  font-family:"Cinzel", serif;
-  background:
-    radial-gradient(1200px 800px at 70% 20%, #0d1540 0%, transparent 60%),
-    radial-gradient(1000px 700px at 20% 80%, #060b24 0%, transparent 60%),
-    linear-gradient(180deg, var(--bg1), var(--bg2));
-  position:relative;
-}
+  // ====== DEV / TEST ======
+  DEV_HUD        : true,   // ← pon false para ocultarlo
+  DEV_START_AT_MS: null,   // ej: 56000 para arrancar cerca del final
+};
 
-/* Viñeta cinematográfica + VELO global */
-#veil{
-  position:fixed; inset:0; pointer-events:none; z-index:50;
-  background: rgba(0,0,0, calc(var(--veil)));
-  transition: background 2.5s ease; /* rampa de luz */
-}
-body::after{
-  content:""; position:fixed; inset:0; pointer-events:none; z-index:5;
-  background: radial-gradient(ellipse at center,
-              transparent 55%, rgba(0,0,0,0.32) 80%, rgba(0,0,0,0.6) 100%);
-}
-
-/* =========================
-   BOTÓN PLAY
-========================= */
-#playBtn{
-  position:absolute; top:50%; left:50%; transform:translate(-50%,-50%);
-  padding:14px 32px; font-size:1.2rem; letter-spacing:.4px;
-  border:2px solid #fff; border-radius:30px;
-  background:transparent; color:#fff; cursor:pointer;
-  transition: background .3s, transform .3s, box-shadow .3s;
-  z-index:9999; pointer-events:auto;
-}
-#playBtn:hover{
-  background: rgba(255,255,255,0.15);
-  transform: translate(-50%,-50%) scale(1.06);
-  box-shadow: 0 0 24px rgba(255,255,255,0.18);
-}
-
-/* =========================
-   TEXTOS CENTRADOS
-========================= */
-#center{
-  position:absolute; top:50%; left:50%; transform:translate(-50%,-50%);
-  text-align:center; width:min(92vw, 900px);
-  padding:0 8px; z-index:10;
-}
-#titulo{
-  font-size: clamp(1.6rem, 3.2vw, 2.6rem);
-  letter-spacing:2.5px;
-  text-shadow:
-    0 0 18px rgba(255,255,255,0.55),
-    0 0 42px rgba(147,197,253,0.35);
-  opacity:0; transform: scale(1.12);
-  transition: opacity 2.8s ease, transform 6s ease;
-}
-#escena{
-  font-size: clamp(1.05rem, 2.2vw, 1.6rem);
-  margin-top: 18px;
-  opacity:0;
-  text-shadow: 0 0 12px rgba(255,255,255,0.55);
-  transition: opacity 1.8s ease;
-}
-.show{ opacity:1 !important; transform:none !important; }
-.fade-out{ opacity:0 !important; transition: opacity 2.2s ease !important; }
-
-#escena #whisper{
-  display:block; margin-top:8px;
-  font-size: clamp(.9rem, 1.8vw, 1.15rem);
-  opacity:0; letter-spacing:.4px;
-  color: rgba(255,255,255,.85);
-  text-shadow: 0 0 8px rgba(255,255,255,.35);
-  transition: opacity .9s ease;
-}
-#escena #whisper.show{ opacity:.72; }
-#escena #whisper.hide{ opacity:0; }
-
-/* =========================
-   ESTRELLAS (div) — ESCALA por variable + GPU
-========================= */
-.star{
-  position:absolute;
-  width:2px; height:2px;
-  background:#fff; border-radius:50%;
-  opacity:0; /* entrada suave */
-  /* sombra más barata para FPS */
-  box-shadow: 0 0 6px rgba(255,255,255,.75);
-  z-index:1;
-  will-change: transform, opacity;
-  backface-visibility: hidden;
-
-  /* Twinkle NO usa transform; la escala es variable */
-  --star-scale: 1;
-  transform: translateZ(0) scale(var(--star-scale));
-  animation: twinkleOpacity 3s infinite alternate;
-}
-@keyframes twinkleOpacity{ from{opacity:.25;} to{opacity:1;} }
-
-/* Capas de profundidad */
-.star.near{ z-index:3; filter: drop-shadow(0 0 6px rgba(255,255,255,.65)); }
-.star.mid { z-index:2; filter: drop-shadow(0 0 4px rgba(255,255,255,.45)); }
-.star.far { z-index:1; filter: drop-shadow(0 0 2px rgba(255,255,255,.25)); opacity:.85; }
-
-/* RUSH 40–55s: el JS sube estas variables */
-.rush .star.near{ --star-scale: var(--rush-scale-near); opacity: var(--rush-opacity); }
-.rush .star.mid { --star-scale: var(--rush-scale-mid);  opacity: calc(var(--rush-opacity) - .05); }
-.rush .star.far { --star-scale: var(--rush-scale-far);  opacity: calc(var(--rush-opacity) - .10); }
-
-/* Sutileza antes del boom */
-.preboom .star.near{
-  filter: drop-shadow(0 0 10px rgba(255,255,255,.85));
-}
-
-/* =========================
-   NEBULOSAS / GALAXIA (blur moderado)
-========================= */
-.nebula{
-  position:absolute;
-  width: 600px; height: 600px;
-  border-radius: 50%;
-  filter: blur(80px);           /* ↓ 100 → 80 (mejor FPS) */
-  opacity:0; z-index:1;
-  animation:
-    float 28s infinite alternate ease-in-out,
-    pulse 12s infinite ease-in-out;
-  will-change: transform, opacity;
-  transition: opacity 2.2s ease; /* entrada suave */
-}
-.nebula.blue{ background: radial-gradient(circle, var(--blue), transparent 70%); }
-.nebula.pink{ background: radial-gradient(circle, var(--pink), transparent 70%); }
-.nebula.gold{ background: radial-gradient(circle, var(--gold), transparent 70%); }
-
-.nebula.pos-1{ top:10%; left:18%; }
-.nebula.pos-2{ bottom:14%; right:22%; }
-.nebula.pos-3{ top:48%; left:65%; }
-.nebula.pos-4{ top:22%; right:8%; }
-
-@keyframes float{
-  from{ transform: translate(0,0) rotate(0deg) scale(1); }
-  to  { transform: translate(60px,-40px) rotate(8deg) scale(1.08); }
-}
-@keyframes pulse{
-  0%,100%{ opacity:.22; }
-  50%    { opacity:.50; }
-}
-.nebula.visible{ opacity:1; }
-
-/* En rush, calmamos nebulosas para foco en estrellas */
-.rush .nebula{
-  animation-play-state: paused;
-  opacity: .9;
-}
-
-/* =========================
-   ESTRELLAS FUGACES
-========================= */
-.shooting-star{
-  position:absolute;
-  width:2px; height:110px;
-  background: linear-gradient(#fff, transparent);
-  transform: rotate(-45deg);
-  top:-120px; opacity:0;
-  animation: fall 2s linear forwards;
-  z-index:2;
-}
-@keyframes fall{
-  0%  { transform: translate(0,0) rotate(-45deg); opacity:1; }
-  100%{ transform: translate(-420px,420px) rotate(-45deg); opacity:0; }
-}
-
-/* =========================
-   CONSTELACIONES (líneas)
-========================= */
-#constellations{
-  position: fixed; inset:0;
-  z-index:2; pointer-events:none;
-}
-.const-line{
-  position:absolute; height:1px;
-  background: linear-gradient(90deg, transparent, rgba(255,255,255,.85), transparent);
-  box-shadow: 0 0 6px rgba(147,197,253,.6);
-  opacity:.0; transform-origin: left center;
-}
-.const-line.draw{ animation: drawLine 3.2s ease forwards; }
-@keyframes drawLine{
-  0%{ opacity:0; transform: scaleX(0); }
-  20%{ opacity:.9; }
-  100%{ opacity:.35; transform: scaleX(1); }
-}
-.const-line.fade{ transition: opacity 2s ease; opacity:0 !important; }
-
-/* =========================
-   POLVO ESTELAR
-========================= */
-#dust{
-  position: fixed; inset:0; z-index:1; pointer-events:none; opacity:.0;
-  background-image:
-    radial-gradient(2px 2px at 20% 30%, rgba(255,255,255,.15) 40%, transparent 41%),
-    radial-gradient(1.5px 1.5px at 60% 70%, rgba(255,255,255,.12) 40%, transparent 41%),
-    radial-gradient(1.5px 1.5px at 80% 40%, rgba(255,255,255,.10) 40%, transparent 41%),
-    radial-gradient(2px 2px at 35% 85%, rgba(255,255,255,.12) 40%, transparent 41%);
-  background-repeat: repeat;
-  animation: drift 60s linear infinite;
-  transition: opacity 2s ease;
-}
-#dust.visible{ opacity:.35; }
-@keyframes drift{
-  from{ background-position: 0 0, 0 0, 0 0, 0 0; }
-  to  { background-position: 600px 240px, 400px 200px, 500px 220px, 300px 160px; }
-}
-.rush #dust{ opacity:.4; }
-
-/* =========================
-   HALO + CHISPAS (visual)
-========================= */
-#halo{
-  position:absolute;
-  top:50%; left:50%;
-  transform:translate(-50%,-50%);
-  width:70vmin; height:70vmin;
-  pointer-events:none;
-  z-index:9; opacity:0;
-  background: radial-gradient(circle at 50% 50%,
-              rgba(180,200,255,0.28) 0%,
-              rgba(120,160,255,0.18) 28%,
-              rgba(80,120,220,0.10) 48%,
-              transparent 70%);
-  filter: blur(24px); /* ↓ 32 → 24 */
-}
-#halo.on{
-  animation: haloPulse 12s ease-in-out infinite;
-  opacity: var(--halo-base-opacity);
-}
-#halo.boost{
-  transition: opacity .8s ease;
-  opacity: var(--halo-boost-opacity);
-}
-@keyframes haloPulse{
-  0%,100%{ transform:translate(-50%,-50%) scale(1);   opacity:.14; }
-  50%    { transform:translate(-50%,-50%) scale(1.06); opacity:.20; }
-}
-.rush #halo.on{ opacity: calc(var(--halo-base-opacity) + .05); }
-
-/* Chispa (click/press) — animación visual */
-.spark-pop{
-  position: absolute;
-  border-radius: 50%;
-  background: #fff;
-  z-index: 3;
-  box-shadow:
-    0 0 8px #fff,
-    0 0 16px rgba(147,197,253,.85),
-    0 0 28px rgba(147,197,253,.55);
-  animation: sparkPop .8s ease-out forwards;
-}
-@keyframes sparkPop{
-  0%   { transform: scale(1);   opacity:1; }
-  60%  { transform: scale(2.2); opacity:.9; }
-  100% { transform: scale(0.2); opacity:0; }
-}
-
-/* =========================
-   WARP (55–59s): estelas GPU-friendly
-========================= */
-.star.no-twinkle { animation: none !important; }
-
-.star.streak{
-  /* La estrella se transforma en una estela vertical; el JS rota/traslada */
-  width: 2px;
-  height: 50px; /* el JS la alarga dinámicamente */
-  background: linear-gradient(to bottom, rgba(255,255,255,1), rgba(255,255,255,0));
-  border-radius: 0;
-  opacity: 1 !important;
-  /* Sombras moderadas (baratas) */
-  box-shadow:
-    0 0 8px rgba(255,255,255,.9),
-    0 0 18px rgba(147,197,253,.55);
-  will-change: transform, height, opacity;
-  transform-origin: top center;
-  filter: none;               /* sin blur para rendimiento */
-  backface-visibility: hidden;
-}
-.preboom .star.streak{ filter: none; }
-
-/* =========================
-   BOOM 59s (flash + colapso)
-========================= */
-#flash{
-  position:fixed; inset:0; z-index:55; pointer-events:none;
-  background: radial-gradient(circle at 50% 50%,
-    rgba(255,255,255,var(--flash-opacity)) 0%,
-    rgba(255,255,255,calc(var(--flash-opacity)*.85)) 35%,
-    rgba(255,255,255,0) 80%);
-  opacity:1; transition:none;
-}
-@keyframes vignetteCollapse{
-  0%  { box-shadow: inset 0 0 0 0 rgba(0,0,0,0); }
-  100%{ box-shadow: inset 0 0 120vmax 120vmax rgba(0,0,0,1); }
-}
-.boom body::after{ animation: vignetteCollapse 220ms ease forwards; }
-.boom #center, .boom #constellations, .boom #dust, .boom #halo,
-.boom .nebula, .boom .star, .boom .shooting-star{
-  transition: opacity 180ms ease !important; opacity:0 !important;
-}
-
-/* =========================
-   UI: HINT y SKIP
-========================= */
-#hint{
-  position:fixed; bottom:24px; left:50%; transform:translateX(-50%);
-  background:var(--ui-bg); border:1px solid var(--ui-bd); color:var(--ui-tx);
-  padding:8px 14px; border-radius:20px; font-size:.95rem; letter-spacing:.2px;
-  opacity:0; pointer-events:none; z-index:40;
-  transition:opacity .5s ease, transform .5s ease; backdrop-filter: blur(6px);
-}
-#hint.show{ opacity:1; transform:translateX(-50%) translateY(0); }
-
-#skipBtn{
-  position:fixed; right:18px; bottom:18px;
-  padding:8px 12px; border-radius:999px;
-  background:var(--ui-bg); color:var(--ui-tx); border:1px solid var(--ui-bd);
-  font-size:.95rem; cursor:pointer; z-index:60; display:none;
-  transition: transform .2s ease, box-shadow .2s ease, background .2s ease; backdrop-filter: blur(6px);
-}
-#skipBtn:hover{ transform:translateY(-1px); box-shadow:0 4px 18px rgba(0,0,0,.25); }
-#skipBtn:focus{ outline:2px solid rgba(147,197,253,.75); outline-offset:2px; }
-.skip-visible #skipBtn{ display:inline-flex; align-items:center; gap:8px; }
-
-/* =========================
-   RESPONSIVE + ACCESIBILIDAD
-========================= */
-@media (max-width: 1024px){
-  .nebula{ width:520px; height:520px; filter:blur(72px);}
-}
-@media (max-width: 820px){
-  #titulo{ font-size: clamp(1.4rem, 3.4vw, 2.1rem); }
-  #escena{ font-size: clamp(1rem, 2.4vw, 1.3rem); }
-  .nebula{ width:460px; height:460px; filter:blur(64px); }
-}
-
-/* Reduce Motion: simplifica animaciones fuertes */
-@media (prefers-reduced-motion: reduce){
-  *{
-    animation-duration:.001ms !important;
-    animation-iteration-count:1 !important;
-    transition-duration:0ms !important;
+/* Mobile tuning */
+(function tuneForMobile(){
+  const isSmall = Math.min(window.innerWidth, window.innerHeight) < 700;
+  if(isSmall){
+    SETTINGS.STAR_TOTAL = 110;
   }
-  .nebula, .star, .shooting-star, #halo{ animation:none !important; }
-  .rush .star, .rush .nebula{ transform:none !important; }
-  #dust{ animation:none !important; }
+})();
+
+/* ============================================================
+   [B] HELPERS / UTILIDADES
+   ============================================================ */
+const $  = s => document.querySelector(s);
+const $$ = s => document.querySelectorAll(s);
+const wait = ms => new Promise(r => setTimeout(r, ms));
+const root = document.documentElement;
+
+function setVar(n, v){ root.style.setProperty(n, String(v)); }
+function setVeil(v){ root.style.setProperty("--veil", String(v)); }
+function clamp(n,a,b){ return Math.min(b, Math.max(a, n)); }
+function easeInOutCubic(t){ return t<0.5 ? 4*t*t*t : 1 - Math.pow(-2*t+2,3)/2; }
+function easeOutCubic(t){ return 1 - Math.pow(1 - t, 3); }
+
+/* Timers/Intervals tracking */
+const timeouts = new Set(), intervals = new Set();
+function setT(fn, ms){ const id=setTimeout(()=>{timeouts.delete(id); fn();}, ms); timeouts.add(id); return id; }
+function setI(fn, ms){ const id=setInterval(fn, ms); intervals.add(id); return id; }
+function clearAllTimers(){ timeouts.forEach(clearTimeout); intervals.forEach(clearInterval); timeouts.clear(); intervals.clear(); }
+
+/* Formato/parse de tiempos (DEV HUD) */
+function fmt(ms){ const s=Math.max(0,Math.floor(ms/1000)); const m=Math.floor(s/60); const r=s%60; return `${String(m).padStart(2,'0')}:${String(r).padStart(2,'0')}`; }
+function parseTimeToMs(txt){
+  if(!txt) return 0;
+  if(/^\d+(\.\d+)?$/.test(txt)) return Math.round(parseFloat(txt)*1000); // "57.5"
+  const m=txt.split(':').map(Number); if(m.length===2) return (m[0]*60+m[1])*1000;
+  if(m.length===3) return (m[0]*3600+m[1]*60+m[2])*1000;
+  return 0;
 }
+
+/* ============================================================
+   [C] REFERENCIAS DOM + UI inyectada
+   ============================================================ */
+const audio=$("#musica"), btn=$("#playBtn"), titulo=$("#titulo"), escena=$("#escena"), dust=$("#dust"), consts=$("#constellations"), halo=$("#halo");
+
+const hint=document.createElement("div"); hint.id="hint"; hint.textContent="mueve el mouse ✨ / toca la pantalla"; document.body.appendChild(hint);
+const skipBtn=document.createElement("button"); skipBtn.id="skipBtn"; skipBtn.setAttribute("aria-label","Saltar al siguiente capítulo"); skipBtn.innerHTML="⭐ <span>Saltar</span>"; document.body.appendChild(skipBtn);
+const flash=document.createElement("div"); flash.id="flash"; document.body.appendChild(flash);
+
+/* Canvas para warp */
+const warpCanvas=document.createElement("canvas"); warpCanvas.id="warpCanvas"; document.body.appendChild(warpCanvas);
+let wctx=null;
+
+/* DEV HUD */
+let devHUD=null;
+function mountDevHUD(){
+  if(!SETTINGS.DEV_HUD) return;
+  devHUD=document.createElement("div");
+  devHUD.id="devHUD";
+  devHUD.innerHTML=`
+    <span class="sp">t=</span><span class="time" id="hudTime">00:00</span>
+    <input id="hudInput" placeholder="mm:ss o s" />
+    <button id="hudGo">Ir</button>
+    <button id="hudMinus">-1s</button>
+    <button id="hudPlus">+1s</button>
+    <button id="hudReset">Inicio</button>
+    <button id="hudHide">×</button>
+  `;
+  document.body.appendChild(devHUD);
+  $("#hudHide").onclick=()=>{ devHUD.remove(); };
+  $("#hudGo").onclick=()=> jumpTo(parseTimeToMs($("#hudInput").value||"0"));
+  $("#hudMinus").onclick=()=> jumpRel(-1000);
+  $("#hudPlus").onclick=()=> jumpRel(1000);
+  $("#hudReset").onclick=()=> jumpTo(0);
+}
+
+/* ============================================================
+   [D] ESTRELLAS / NEBULOSAS
+   ============================================================ */
+function createStars(total){
+  const FAR=Math.floor(total*SETTINGS.STAR_FAR), MID=Math.floor(total*SETTINGS.STAR_MID), NEAR=total-FAR-MID;
+  const mk=layer=>{
+    const s=document.createElement("div");
+    s.className=`star ${layer}`;
+    const y=Math.random()*window.innerHeight, x=Math.random()*window.innerWidth;
+    s.dataset.x=x.toFixed(2); s.dataset.y=y.toFixed(2);
+    s.style.top=y+"px"; s.style.left=x+"px";
+    s.style.animationDuration=(2+Math.random()*3)+"s";
+    document.body.appendChild(s);
+    setTimeout(()=>{ s.style.opacity=1; }, 900+Math.random()*1200);
+  };
+  for(let i=0;i<FAR;i++) mk("far");
+  for(let i=0;i<MID;i++) mk("mid");
+  for(let i=0;i<NEAR;i++) mk("near");
+}
+
+let sparkleTimer=null;
+function startSparkle(){
+  sparkleTimer=setI(()=>{
+    const stars=$$(".star"); if(!stars.length) return;
+    const n=4+Math.floor(Math.random()*3);
+    for(let i=0;i<n;i++){
+      const s=stars[Math.floor(Math.random()*stars.length)];
+      if(!s) continue;
+      s.classList.add("sparkle");
+      setTimeout(()=> s.classList.remove("sparkle"), 650);
+    }
+  }, 3800);
+}
+function stopSparkle(){ if(sparkleTimer){ clearInterval(sparkleTimer); intervals.delete(sparkleTimer); sparkleTimer=null; } }
+
+function ensureNebulas(){
+  if(!$$(".nebula").length){
+    [["blue","pos-1"],["pink","pos-2"],["gold","pos-3"]].forEach(([tone,pos])=>{
+      const n=document.createElement("div"); n.className=`nebula ${tone} ${pos}`; document.body.appendChild(n);
+    });
+  }
+}
+function showNebulas(){ ensureNebulas(); $$(".nebula").forEach((n,i)=> setT(()=> n.classList.add("visible"), 5000+i*1200)); }
+
+function shootingStar(afterMs){
+  setT(()=>{
+    const s=document.createElement("div");
+    s.className="shooting-star";
+    s.style.left=(Math.random()*window.innerWidth)+"px";
+    document.body.appendChild(s);
+    setTimeout(()=> s.remove(), 2100);
+  }, afterMs);
+}
+
+function drawConstellation({top,left,length,angleDeg,life=3800}){
+  const line=document.createElement("div");
+  line.className="const-line";
+  line.style.top=top+"px"; line.style.left=left+"px"; line.style.width=length+"px";
+  line.style.transform=`rotate(${angleDeg}deg) scaleX(0)`;
+  consts.appendChild(line);
+  requestAnimationFrame(()=> line.classList.add("draw"));
+  setTimeout(()=> line.classList.add("fade"), life);
+  setTimeout(()=> line.remove(), life+2200);
+}
+
+function activateDust(){ dust?.classList.add("visible"); }
+
+/* ============================================================
+   [E] TEXTOS / HALO / SUSURROS
+   ============================================================ */
+function showTitle(){ titulo.classList.add("show"); }
+function showSceneMsg(){ escena.textContent="🌌 Nuestro viaje comienza..."; escena.classList.add("show"); }
+function fadeOutTexts(){ titulo.classList.add("fade-out"); escena.classList.add("fade-out"); const w=$("#whisper"); if(w) w.classList.add("hide"); }
+
+function startHalo(){
+  if(!halo) return;
+  halo.classList.add("on");
+  setT(()=>{ halo.classList.add("boost"); setTimeout(()=> halo.classList.remove("boost"), 1200); }, 28000);
+  setT(()=>{ halo.classList.add("boost"); setTimeout(()=> halo.classList.remove("boost"), 1200); }, 40000);
+}
+
+const WHISPERS=["Cierra los ojos…","Respira conmigo…","Quédate aquí un momento…"];
+let whisperTimer=null;
+function startWhispers(){
+  let w=$("#whisper"); if(!w){ w=document.createElement("span"); w.id="whisper"; escena.appendChild(w); }
+  let idx=0;
+  const showNext=()=>{
+    if(!w) return;
+    w.classList.remove("show"); w.classList.add("hide");
+    setTimeout(()=>{ w.textContent=WHISPERS[idx%WHISPERS.length]; idx++; w.classList.remove("hide"); w.classList.add("show"); }, 400);
+  };
+  showNext(); whisperTimer=setI(showNext, 9000);
+}
+function stopWhispers(){ if(whisperTimer){ clearInterval(whisperTimer); intervals.delete(whisperTimer); whisperTimer=null; } const w=$("#whisper"); if(w) w.classList.add("hide"); }
+
+/* ============================================================
+   [F] INTERACCIÓN: PARALLAX + CHISPAS
+   ============================================================ */
+let parallaxActive=false, targetX=0, targetY=0, px=0, py=0;
+const easeParallax=0.06;
+function onMouseMove(e){
+  if(!parallaxActive) return;
+  const cx=window.innerWidth/2, cy=window.innerHeight/2;
+  targetX=(e.clientX-cx)/cx; targetY=(e.clientY-cy)/cy;
+}
+function parallaxLoop(){
+  if(parallaxActive){
+    px+=(targetX-px)*easeParallax; py+=(targetY-py)*easeParallax;
+    const layers=$$(".nebula");
+    layers.forEach((n,i)=>{
+      const s=(i+1)*6; n.style.transform=`translate(${-px*s}px, ${-py*s}px)`;
+    });
+  }
+  requestAnimationFrame(parallaxLoop);
+}
+window.addEventListener("mousemove", onMouseMove); parallaxLoop();
+
+function spawnSpark(x,y,big=false){
+  const p=document.createElement("div"); p.className="spark-pop";
+  const size=(big?SETTINGS.SPARK_SIZE_MIN+2:SETTINGS.SPARK_SIZE_MIN)+Math.random()*(SETTINGS.SPARK_SIZE_MAX-SETTINGS.SPARK_SIZE_MIN);
+  p.style.width=size+"px"; p.style.height=size+"px";
+  p.style.left=(x+(Math.random()*14-7))+"px"; p.style.top =(y+(Math.random()*14-7))+"px";
+  document.body.appendChild(p); setTimeout(()=> p.remove(), 820);
+}
+function burst(x,y){ const n=SETTINGS.SPARK_CLICK_MIN+Math.floor(Math.random()*(SETTINGS.SPARK_CLICK_MAX-SETTINGS.SPARK_CLICK_MIN+1)); for(let i=0;i<n;i++) setTimeout(()=> spawnSpark(x,y,true), i*18); }
+let pressInterval=null;
+function onMouseDown(e){ burst(e.clientX,e.clientY); if(pressInterval) clearInterval(pressInterval); pressInterval=setInterval(()=> spawnSpark(e.clientX,e.clientY,false), SETTINGS.SPARK_PRESS_EVERY); }
+function onMouseUp(){ if(pressInterval){ clearInterval(pressInterval); pressInterval=null; } }
+window.addEventListener("mousedown", onMouseDown);
+window.addEventListener("mouseup", onMouseUp);
+window.addEventListener("click", e=> burst(e.clientX,e.clientY));
+
+/* ============================================================
+   [G] RAMP / HINT / SKIP
+   ============================================================ */
+function rampBrightness(){ SETTINGS.RAMP.forEach(step=> setT(()=> setVeil(step.veil), step.t)); }
+function scheduleHint(){ setT(()=> hint.classList.add("show"), SETTINGS.T_DUST_MSG_MS); setT(()=> hint.classList.remove("show"), SETTINGS.T_DUST_MSG_MS+7000); }
+function scheduleSkip(){ setT(()=>{ root.classList.add("skip-visible"); skipBtn.addEventListener("click", onSkip); }, 35000); }
+function onSkip(){ doBoom(true); }
+
+/* ============================================================
+   [H] RUSH (40–55s)
+   ============================================================ */
+let rushRAF=null;
+function startRush(){
+  root.classList.add("rush");
+  const D=Math.max(1,(SETTINGS.T_WARP_START_MS-SETTINGS.T_RUSH_START_MS));
+  const t0=performance.now();
+  setVar("--rush-scale-near",1); setVar("--rush-scale-mid",1); setVar("--rush-scale-far",1); setVar("--rush-opacity",0.95);
+  const step=now=>{
+    const t=clamp((now-t0)/D,0,1), e=easeInOutCubic(t);
+    setVar("--rush-scale-near",(1+e*(SETTINGS.RUSH_MAX_SCALE_NEAR-1)).toFixed(3));
+    setVar("--rush-scale-mid", (1+e*(SETTINGS.RUSH_MAX_SCALE_MID -1)).toFixed(3));
+    setVar("--rush-scale-far", (1+e*(SETTINGS.RUSH_MAX_SCALE_FAR -1)).toFixed(3));
+    setVar("--rush-opacity",   (0.95+e*0.05).toFixed(3));
+    if(t<1) rushRAF=requestAnimationFrame(step); else rushRAF=null;
+  };
+  rushRAF=requestAnimationFrame(step);
+}
+
+/* ============================================================
+   [I] WARP CANVAS (58.8–60.0s, ~1.2s)
+   ============================================================ */
+let warpRAF=null, warpStartTime=0, particles=[];
+function prepareCanvas(){
+  const dpr=window.devicePixelRatio||1;
+  warpCanvas.width = Math.floor(window.innerWidth*dpr);
+  warpCanvas.height= Math.floor(window.innerHeight*dpr);
+  warpCanvas.style.width=window.innerWidth+"px";
+  warpCanvas.style.height=window.innerHeight+"px";
+  wctx=warpCanvas.getContext("2d");
+  wctx.setTransform(dpr,0,0,dpr,0,0);
+  wctx.globalCompositeOperation="lighter";
+}
+function startWarpCanvas(){
+  prepareCanvas();
+  warpCanvas.style.display="block";
+  // Ocultamos estrellas DOM para evitar “dureza”
+  $$(".star").forEach(s=> s.style.opacity=0.15);
+
+  const cx=window.innerWidth/2, cy=window.innerHeight/2;
+  const N=SETTINGS.WARP_PARTICLES;
+  particles=new Array(N).fill(0).map(()=> {
+    const a=Math.random()*Math.PI*2;
+    const r=(Math.random()**0.9)*Math.min(cx,cy)*SETTINGS.WARP_SPREAD;
+    const x=cx + Math.cos(a)*r;
+    const y=cy + Math.sin(a)*r;
+    const speed= (0.9+Math.random()*0.6) * Math.max(window.innerWidth, window.innerHeight)/SETTINGS.WARP_DURATION_MS; // px/ms
+    const noise=(Math.random()*2-1)*SETTINGS.WARP_NOISE; // curvita leve
+    const hue= 200 + Math.random()*40; // azulados
+    return {x,y,a,speed,noise,hue};
+  });
+
+  warpStartTime=performance.now();
+  const tail=SETTINGS.WARP_TAIL, fade=SETTINGS.WARP_FADE;
+
+  const tick=(now)=>{
+    const t=clamp((now-warpStartTime)/SETTINGS.WARP_DURATION_MS,0,1);
+    const e=easeOutCubic(t);
+    wctx.clearRect(0,0,warpCanvas.width, warpCanvas.height);
+
+    for(const p of particles){
+      // dirección base + ligera curvatura (natural)
+      const ang = p.a + (e-0.5)*p.noise;
+      const vx = Math.cos(ang), vy = Math.sin(ang);
+      const dist = e * p.speed * SETTINGS.WARP_DURATION_MS * 0.8;
+      const x2 = p.x + vx*dist;
+      const y2 = p.y + vy*dist;
+
+      const x1 = x2 - vx*dist*tail;
+      const y1 = y2 - vy*dist*tail;
+
+      // gradiente suave por partícula
+      const grad=wctx.createLinearGradient(x1,y1,x2,y2);
+      grad.addColorStop(0, `rgba(180,200,255,${0.0})`);
+      grad.addColorStop(0.4,`rgba(190,210,255,${0.22*fade})`);
+      grad.addColorStop(1, `rgba(255,255,255,${0.60*fade})`);
+
+      wctx.strokeStyle=grad;
+      wctx.lineWidth=1.6;
+      wctx.beginPath(); wctx.moveTo(x1,y1); wctx.lineTo(x2,y2); wctx.stroke();
+    }
+
+    if(t<1) warpRAF=requestAnimationFrame(tick);
+    else{ warpRAF=null; }
+  };
+  warpRAF=requestAnimationFrame(tick);
+}
+function stopWarpCanvas(){
+  warpCanvas.style.display="none";
+  wctx && wctx.clearRect(0,0,warpCanvas.width, warpCanvas.height);
+  $$(".star").forEach(s=> s.style.opacity=""); // restaurar
+}
+
+/* ============================================================
+   [J] BOOM (60.0s)
+   ============================================================ */
+let boomDone=false;
+async function doBoom(fromSkip=false){
+  if(boomDone) return; boomDone=true;
+
+  // limpiar efectos
+  window.removeEventListener("mousedown", onMouseDown);
+  window.removeEventListener("mouseup", onMouseUp);
+  stopSparkle(); stopWhispers();
+
+  // apagar warp canvas si estuviera activo
+  if(warpRAF) cancelAnimationFrame(warpRAF);
+  stopWarpCanvas();
+
+  // Fade audio
+  try{
+    const startVol=audio.volume;
+    for(let i=0;i<=SETTINGS.AUDIO_FADE_STEPS;i++){
+      const f=1-(i/SETTINGS.AUDIO_FADE_STEPS);
+      audio.volume=clamp(startVol*f,0,1);
+      // eslint-disable-next-line no-await-in-loop
+      await wait(SETTINGS.AUDIO_FADE_DELAY);
+    }
+    audio.pause();
+  }catch{}
+
+  // Flash + colapso
+  setVar("--flash-opacity", 1);
+  setTimeout(()=> setVar("--flash-opacity", 0), parseInt(getComputedStyle(root).getPropertyValue("--flash-duration")) || 140);
+  root.classList.add("boom");
+
+  // Queda en negro. Cuando exista la segunda escena:
+  // window.location.href = "lalaland.html";
+}
+
+/* ============================================================
+   [K] SCHEDULER con OFFSET (para DEV HUD)
+   ============================================================ */
+function scheduleAt(absMs, offsetMs, fn){ const delay=absMs-offsetMs; if(delay<=0){ try{fn();}catch{} return; } setT(fn, delay); }
+
+function rampWithOffset(offsetMs){ SETTINGS.RAMP.forEach(step=> scheduleAt(step.t, offsetMs, ()=> setVeil(step.veil))); }
+
+function resetVisuals(){
+  clearAllTimers();
+  if(rushRAF) cancelAnimationFrame(rushRAF);
+  if(warpRAF) cancelAnimationFrame(warpRAF);
+  stopWarpCanvas();
+
+  $$(".star, .shooting-star, .const-line, .spark-pop").forEach(n=> n.remove());
+  $("#dust")?.classList.remove("visible");
+  $("#halo")?.classList.remove("on","boost");
+  document.documentElement.classList.remove("rush","boom","skip-visible");
+  setVar("--flash-opacity", 0);
+  if(titulo){ titulo.classList.remove("show","fade-out"); }
+  if(escena){
+    escena.classList.remove("show","fade-out");
+    const w=$("#whisper"); if(w) w.remove();
+    escena.textContent="";
+  }
+  setVeil(1);
+  stopWhispers(); stopSparkle();
+  boomDone=false;
+}
+
+function startTimelineWithOffset(offsetMs){
+  // Estrellas y capas base
+  createStars(SETTINGS.STAR_TOTAL);
+  startSparkle();
+  showNebulas();
+
+  scheduleAt(SETTINGS.T_SHOW_TITLE_MS, offsetMs, showTitle);
+  scheduleAt(SETTINGS.T_INTERACTIONS_MS, offsetMs, ()=>{ parallaxActive=true; });
+  scheduleAt(SETTINGS.T_HALO_ON_MS, offsetMs, startHalo);
+  scheduleAt(SETTINGS.T_DUST_MSG_MS, offsetMs, activateDust);
+  scheduleAt(SETTINGS.T_DUST_MSG_MS, offsetMs, showSceneMsg);
+  scheduleAt(SETTINGS.T_WHISPERS_MS, offsetMs, startWhispers);
+
+  scheduleAt(SETTINGS.T_CONST_1_MS, offsetMs, ()=> drawConstellation({
+    top: window.innerHeight*0.28, left: window.innerWidth*0.18,
+    length: window.innerWidth*0.22, angleDeg:12
+  }));
+  scheduleAt(SETTINGS.T_CONST_2_MS, offsetMs, ()=> drawConstellation({
+    top: window.innerHeight*0.62, left: window.innerWidth*0.58,
+    length: window.innerWidth*0.18, angleDeg:-18
+  }));
+
+  scheduleAt(SETTINGS.T_SHOOT_1_MS, offsetMs, ()=> shootingStar(0));
+  scheduleAt(SETTINGS.T_SHOOT_2_MS, offsetMs, ()=> shootingStar(0));
+
+  scheduleAt(SETTINGS.T_TEXTS_FADE_MS, offsetMs, ()=>{ fadeOutTexts(); stopWhispers(); });
+
+  // Rush
+  scheduleAt(SETTINGS.T_RUSH_START_MS, offsetMs, startRush);
+
+  // Warp Canvas corto (rápido y natural)
+  scheduleAt(SETTINGS.T_WARP_START_MS, offsetMs, startWarpCanvas);
+
+  // Preboom y Boom
+  scheduleAt(SETTINGS.T_PREBOOM_MS, offsetMs, ()=> root.classList.add("preboom"));
+  scheduleAt(SETTINGS.T_BOOM_MS, offsetMs, ()=> doBoom(false));
+
+  // Rampa con offset
+  rampWithOffset(offsetMs);
+}
+
+/* Saltar a tiempo (DEV) */
+function jumpTo(ms){
+  resetVisuals();
+  // audio sync
+  try{ audio.currentTime = Math.max(0, ms/1000); }catch{}
+  // reconstruir
+  startTimelineWithOffset(ms);
+}
+function jumpRel(delta){ const ms=Math.max(0, (audio.currentTime*1000|0) + delta); jumpTo(ms); }
+
+/* ============================================================
+   [L] TIMELINE NORMAL
+   ============================================================ */
+function startTimeline(){ startTimelineWithOffset(0); }
+
+/* ============================================================
+   [M] PLAY, DEV HUD y teclado
+   ============================================================ */
+btn.addEventListener("click", async ()=>{
+  audio.load(); audio.volume=SETTINGS.AUDIO_VOLUME;
+  try{
+    await audio.play(); btn.style.display="none";
+    rampBrightness();
+    mountDevHUD();
+    if(SETTINGS.DEV_START_AT_MS!=null){ jumpTo(SETTINGS.DEV_START_AT_MS); }
+    else{ startTimeline(); }
+    // HUD updater
+    if(SETTINGS.DEV_HUD){
+      setI(()=>{ const t=$("#hudTime"); if(t) t.textContent=fmt(audio.currentTime*1000); }, 200);
+    }
+  }catch(err){
+    console.error("Audio bloqueado", err);
+    alert("Toca de nuevo para iniciar el audio ✨");
+  }
+});
+
+window.addEventListener("keydown",(e)=>{
+  if((e.code==="Space"||e.code==="Enter") && btn.style.display!=="none"){ btn.click(); }
+  if(e.code==="KeyS" && root.classList.contains("skip-visible")) onSkip();
+});
+
+/* Limpieza */
+window.addEventListener("beforeunload", ()=>{
+  clearAllTimers();
+  if(rushRAF) cancelAnimationFrame(rushRAF);
+  if(warpRAF) cancelAnimationFrame(warpRAF);
+  stopWhispers();
+  stopSparkle();
+});
 
 
 
