@@ -1,4 +1,9 @@
 /* =========================
+   INTRO LA LA LAND — CSS COMPLETO
+   (incluye rush 40–59s + boom 59s + skip + hint)
+========================= */
+
+/* =========================
    VARIABLES & BASE
 ========================= */
 :root{
@@ -7,7 +12,29 @@
   --pink:rgba(244,114,182,0.30);
   --gold:rgba(255,235,200,0.22);
   --star-glow: rgba(255,255,255,0.85);
-  --veil: 1;            /* 1 = negro total, 0 = sin velo (la luz se “levanta” con JS) */
+
+  /* Velo global 1=negro total, 0=sin velo */
+  --veil: 1;
+
+  /* Intensidades controlables por JS durante el rush */
+  --rush-scale-near: 1;   /* 1 → 2.8 */
+  --rush-scale-mid:  1;   /* 1 → 2.0 */
+  --rush-scale-far:  1;   /* 1 → 1.3 */
+  --rush-translate:  0px; /* desplazamiento radial simulado */
+  --rush-opacity:    1;   /* fade opcional 0.85–1 en rush */
+
+  /* Halo */
+  --halo-base-opacity: .16;
+  --halo-boost-opacity: .22;
+
+  /* Hints y botones */
+  --ui-bg: rgba(0,0,0,.45);
+  --ui-bd: rgba(255,255,255,.35);
+  --ui-tx: #fff;
+
+  /* Flash boom */
+  --flash-opacity: 0;     /* 0 → 1 en el boom */
+  --flash-duration: 120ms;/* duración pico flash */
 }
 
 *{ box-sizing: border-box; }
@@ -26,16 +53,16 @@ body{
   position:relative;
 }
 
-/* Viñeta cinematográfica + VELO global de oscuridad controlado por --veil */
+/* Viñeta cinematográfica + VELO global */
 #veil{
   position:fixed;
   inset:0;
   background: rgba(0,0,0, calc(var(--veil)));
   pointer-events:none;
-  z-index: 50; /* por encima de todo salvo el botón */
+  z-index: 50;
   transition: background 2.5s ease; /* rampa de luz */
 }
-/* Viñeta adicional para bordes más oscuros */
+/* Viñeta extra en bordes */
 body::after{
   content:"";
   position:fixed; inset:0; pointer-events:none; z-index:5;
@@ -44,7 +71,7 @@ body::after{
 }
 
 /* =========================
-   BOTÓN
+   BOTÓN PLAY
 ========================= */
 #playBtn{
   position:absolute;
@@ -57,13 +84,15 @@ body::after{
   cursor:pointer;
   letter-spacing:.4px;
   transition: background .3s, transform .3s, box-shadow .3s;
-  z-index: 60; /* por encima del velo */
+  z-index: 60;
 }
 #playBtn:hover{
   background: rgba(255,255,255,0.15);
   transform: translate(-50%,-50%) scale(1.06);
   box-shadow: 0 0 24px rgba(255,255,255,0.18);
 }
+/* Garantía de clic */
+#playBtn{ position:fixed; z-index:9999 !important; pointer-events:auto; }
 
 /* =========================
    TEXTOS CENTRADOS
@@ -93,28 +122,30 @@ body::after{
   text-shadow: 0 0 12px rgba(255,255,255,0.55);
   transition: opacity 1.8s ease;
 }
-/* Estados comunes que activará el JS */
+/* Estados activados por JS */
 .show{ opacity:1 !important; transform:none !important; }
 .fade-out{ opacity:0 !important; transition: opacity 2.2s ease !important; }
 
 /* =========================
    ESTRELLAS (PC: div)
+   + capas para rush (near/mid/far)
 ========================= */
 .star{
   position:absolute;
   width:2px; height:2px;
   background:#fff;
   border-radius:50%;
-  opacity:0; /* ocultas al inicio; JS hace fade-in escalonado */
+  opacity:0; /* entrada suave */
   box-shadow: 0 0 8px var(--star-glow);
   animation: twinkle 3s infinite alternate;
   z-index:1;
+  will-change: transform, opacity, filter;
 }
 @keyframes twinkle{
   from { opacity:0.25; transform: scale(0.85); }
   to   { opacity:1;    transform: scale(1.28); }
 }
-/* Estado “mágico” temporal que añadirá JS a grupos de estrellas */
+/* “Sparkle” temporal */
 .star.sparkle{
   transition: transform .55s ease, opacity .55s ease, filter .55s ease, box-shadow .55s ease;
   transform: scale(2);
@@ -126,6 +157,30 @@ body::after{
   filter: drop-shadow(0 0 8px #fff);
 }
 
+/* Capas de profundidad: el JS añadirá .near/.mid/.far */
+.star.near{  z-index: 3; filter: drop-shadow(0 0 6px rgba(255,255,255,.65)); }
+.star.mid{   z-index: 2; filter: drop-shadow(0 0 4px rgba(255,255,255,.45)); }
+.star.far{   z-index: 1; filter: drop-shadow(0 0 2px rgba(255,255,255,.25)); opacity:.85; }
+
+/* Estados de RUSH: aplican escalado y sutil motion */
+.rush .star.near{
+  transform: scale(var(--rush-scale-near));
+  opacity: var(--rush-opacity);
+}
+.rush .star.mid{
+  transform: scale(var(--rush-scale-mid));
+  opacity: calc(var(--rush-opacity) - .05);
+}
+.rush .star.far{
+  transform: scale(var(--rush-scale-far));
+  opacity: calc(var(--rush-opacity) - .10);
+}
+
+/* Opcional: ligero blur/motion a las near en el tramo final */
+.preboom .star.near{
+  filter: drop-shadow(0 0 10px rgba(255,255,255,.85)) blur(.3px);
+}
+
 /* =========================
    NEBULOSAS / GALAXIA
 ========================= */
@@ -134,7 +189,7 @@ body::after{
   width: 600px; height: 600px;
   border-radius: 50%;
   filter: blur(100px);
-  opacity:0; /* inicio invisible, sin pops */
+  opacity:0; /* inicio invisible */
   z-index:1;
   animation:
     float 28s infinite alternate ease-in-out,
@@ -146,7 +201,6 @@ body::after{
 .nebula.pink{ background: radial-gradient(circle, var(--pink), transparent 70%); }
 .nebula.gold{ background: radial-gradient(circle, var(--gold), transparent 70%); }
 
-/* Posiciones sugeridas */
 .nebula.pos-1{ top:10%; left:18%; }
 .nebula.pos-2{ bottom:14%; right:22%; }
 .nebula.pos-3{ top:48%; left:65%; }
@@ -160,8 +214,13 @@ body::after{
   0%,100%{ opacity:.22; }
   50%    { opacity:.50; }
 }
-/* Activación de visibilidad que pondrá el JS en escalonamiento */
 .nebula.visible{ opacity:1; }
+
+/* En rush, mantenemos nebulosas más estables para foco en estrellas */
+.rush .nebula{
+  animation-play-state: paused; /* visualmente: calma de fondo */
+  opacity: .9;
+}
 
 /* =========================
    ESTRELLAS FUGACES (PC)
@@ -194,7 +253,6 @@ body::after{
   opacity:.0;
   transform-origin: left center;
 }
-/* animación para “dibujar” la línea */
 .const-line.draw{
   animation: drawLine 3.2s ease forwards;
 }
@@ -203,13 +261,12 @@ body::after{
   20%{ opacity:.9; }
   100%{ opacity:.35; transform: scaleX(1); }
 }
-/* desvanecer constelación */
 .const-line.fade{
   transition: opacity 2s ease; opacity:0 !important;
 }
 
 /* =========================
-   POLVO ESTELAR (textura fina)
+   POLVO ESTELAR
 ========================= */
 #dust{
   position: fixed; inset:0; z-index:1; pointer-events:none; opacity:.0;
@@ -222,24 +279,26 @@ body::after{
   animation: drift 60s linear infinite;
   transition: opacity 2s ease;
 }
-#dust.visible{ opacity:.35; } /* JS la activa en 15s */
+#dust.visible{ opacity:.35; }
 @keyframes drift{
   from{ background-position: 0 0, 0 0, 0 0, 0 0; }
   to  { background-position: 600px 240px, 400px 200px, 500px 220px, 300px 160px; }
 }
 
+/* En rush, el polvo acompaña discretamente */
+.rush #dust{ opacity:.4; }
+
 /* =========================
    EXTRAS ELEGANTES (halo, susurros, spark-click)
 ========================= */
-
-/* HALO CENTRAL que “respira” (detrás del título) */
+/* HALO CENTRAL */
 #halo{
   position:absolute;
   top:50%; left:50%;
   transform:translate(-50%,-50%);
   width:70vmin; height:70vmin;
   pointer-events:none;
-  z-index:9; /* detrás de #center (z=10) */
+  z-index:9;
   opacity:0; /* se enciende por JS */
   background: radial-gradient(circle at 50% 50%,
               rgba(180,200,255,0.28) 0%,
@@ -250,18 +309,19 @@ body::after{
 }
 #halo.on{
   animation: haloPulse 12s ease-in-out infinite;
-  opacity: .16;
+  opacity: var(--halo-base-opacity);
 }
 #halo.boost{
   transition: opacity .8s ease;
-  opacity: .22;
+  opacity: var(--halo-boost-opacity);
 }
 @keyframes haloPulse{
   0%,100%{ transform:translate(-50%,-50%) scale(1);   opacity:.14; }
   50%    { transform:translate(-50%,-50%) scale(1.06); opacity:.20; }
 }
+/* En rush, halo un poco más presente */
+.rush #halo.on{ opacity: calc(var(--halo-base-opacity) + .05); }
 
-/* “SUSURROS” debajo del mensaje principal */
 #escena #whisper{
   display:block;
   margin-top:8px;
@@ -275,7 +335,7 @@ body::after{
 #escena #whisper.show{ opacity: .72; }
 #escena #whisper.hide{ opacity: 0;   }
 
-/* DESTELLOS EFÍMEROS generados por click */
+/* DESTELLOS EFÍMEROS por click */
 .spark-pop{
   position: absolute;
   width: 3px; height: 3px;
@@ -295,6 +355,101 @@ body::after{
 }
 
 /* =========================
+   RUSH 40–59s (utilidades y animations)
+========================= */
+/* Warp radial opcional para el toque de “acercamiento” */
+@keyframes mildWarp {
+  0%   { transform: translate(0,0) scale(1); }
+  100% { transform: translate(var(--rush-translate), var(--rush-translate)) scale(1.02); }
+}
+.rush .star{ animation-duration: 2.6s; } /* twinkle más vivo */
+.rush .star.near{ animation: twinkle 2.2s infinite alternate; }
+.rush .star.mid{  animation: twinkle 2.6s infinite alternate; }
+.rush .star.far{  animation: twinkle 3.0s infinite alternate; }
+
+/* =========================
+   “BOOM” 59s (flash + collapse)
+========================= */
+/* Capa Flash */
+#flash{
+  position:fixed; inset:0; z-index: 55; pointer-events:none;
+  background: radial-gradient(circle at 50% 50%, rgba(255,255,255,var(--flash-opacity)) 0%, rgba(255,255,255,calc(var(--flash-opacity)*.85)) 35%, rgba(255,255,255,0) 80%);
+  opacity: 1; /* controlado por var interna */
+  transition: none;
+}
+/* Colapso de viñeta al boom (cierra al centro brevemente) */
+@keyframes vignetteCollapse {
+  0%   { box-shadow: inset 0 0 0 0 rgba(0,0,0,0); }
+  100% { box-shadow: inset 0 0 120vmax 120vmax rgba(0,0,0,1); }
+}
+.boom body::after{
+  animation: vignetteCollapse 220ms ease forwards;
+}
+/* Apagado general de elementos en boom */
+.boom #center,
+.boom #constellations,
+.boom #dust,
+.boom #halo,
+.boom .nebula,
+.boom .star,
+.boom .shooting-star{
+  transition: opacity 180ms ease !important;
+  opacity: 0 !important;
+}
+
+/* =========================
+   UI: HINT y SKIP
+========================= */
+/* Hint temporal (aparece 15–22s aprox; lo controla JS) */
+#hint{
+  position: fixed;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--ui-bg);
+  border:1px solid var(--ui-bd);
+  color: var(--ui-tx);
+  padding: 8px 14px;
+  border-radius: 20px;
+  font-size: .95rem;
+  letter-spacing:.2px;
+  opacity:0;
+  pointer-events:none;
+  z-index: 40;
+  transition: opacity .5s ease, transform .5s ease;
+  backdrop-filter: blur(6px);
+}
+#hint.show{
+  opacity:1; transform: translateX(-50%) translateY(0);
+}
+
+/* Botón Skip (⭐) — aparece ~35s en adelante */
+#skipBtn{
+  position: fixed;
+  right: 18px; bottom: 18px;
+  padding: 8px 12px;
+  border-radius: 999px;
+  background: var(--ui-bg);
+  color: var(--ui-tx);
+  border:1px solid var(--ui-bd);
+  font-size: .95rem;
+  cursor: pointer;
+  z-index: 60;
+  display: none; /* visible sólo con .skip-visible */
+  transition: transform .2s ease, box-shadow .2s ease, background .2s ease;
+  backdrop-filter: blur(6px);
+}
+#skipBtn:hover{
+  transform: translateY(-1px);
+  box-shadow: 0 4px 18px rgba(0,0,0,.25);
+}
+#skipBtn:focus{
+  outline: 2px solid rgba(147,197,253,.75);
+  outline-offset: 2px;
+}
+.skip-visible #skipBtn{ display: inline-flex; align-items:center; gap:8px; }
+
+/* =========================
    RESPONSIVE mínimo
 ========================= */
 @media (max-width: 1024px){
@@ -305,6 +460,18 @@ body::after{
   #escena{ font-size: clamp(1rem, 2.4vw, 1.3rem); }
   .nebula{ width:460px; height:460px; filter:blur(80px); }
 }
+
+/* =========================
+   ACCESIBILIDAD: reduced motion
+========================= */
+@media (prefers-reduced-motion: reduce){
+  * { animation-duration: .001ms !important; animation-iteration-count: 1 !important; transition-duration: 0ms !important; }
+  .nebula, .star, .shooting-star, #halo{ animation: none !important; }
+  .rush .star,
+  .rush .nebula{ transform: none !important; }
+  #dust{ animation: none !important; }
+}
+
 #playBtn{ position:fixed; z-index:9999 !important; pointer-events:auto; }
 #veil, #halo, #dust, #constellations, .nebula, .star { pointer-events:none !important; }
 
