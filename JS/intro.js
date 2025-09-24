@@ -1,121 +1,203 @@
-const audio = document.getElementById("musica");
-const titulo = document.getElementById("titulo");
+// === Referencias ===
+const audio     = document.getElementById("musica");
+const titulo    = document.getElementById("titulo");
 const escenaDiv = document.getElementById("escena");
-const playBtn = document.getElementById("playBtn");
-const starCanvas = document.getElementById("starCanvas");
-const ctx = starCanvas.getContext("2d");
+const playBtn   = document.getElementById("playBtn");
+const starCanvas= document.getElementById("starCanvas");
+const ctx       = starCanvas.getContext("2d");
 
-// Ajustar canvas
-function resizeCanvas() {
-  starCanvas.width = window.innerWidth;
+// === Utilidades ===
+const isMobile = window.matchMedia("(max-width: 768px)").matches;
+
+// Ajusta canvas a pantalla
+function resizeCanvas(){
+  starCanvas.width  = window.innerWidth;
   starCanvas.height = window.innerHeight;
 }
 window.addEventListener("resize", resizeCanvas);
 resizeCanvas();
 
-// Detectar móvil
-const isMobile = window.innerWidth < 768;
-
-// Crear estrellas en PC
-function createStarDivs() {
-  for (let i = 0; i < 120; i++) {
-    const star = document.createElement("div");
-    star.className = "star";
-    star.style.top = Math.random() * window.innerHeight + "px";
-    star.style.left = Math.random() * window.innerWidth + "px";
-    star.style.animationDuration = (2 + Math.random()*3) + "s";
-    document.body.appendChild(star);
-    // fade-in de cada estrella con delay
-    setTimeout(() => { star.style.opacity = 1; }, 1000 + Math.random()*2000);
-  }
-}
-
-// Estrellas móviles con canvas
-let stars = [];
-function initCanvasStars() {
-  stars = [];
-  for (let i = 0; i < 80; i++) {
-    stars.push({
-      x: Math.random() * starCanvas.width,
-      y: Math.random() * starCanvas.height,
-      r: Math.random() * 1.5,
-      o: Math.random()
+// Crea nebulosas por defecto si no existen en el HTML
+function ensureNebulas(){
+  let nebulas = document.querySelectorAll(".nebula");
+  if(nebulas.length === 0){
+    const specs = [
+      ["blue","pos-1"],
+      ["pink","pos-2"],
+      ["gold","pos-3"]
+    ];
+    specs.forEach(([tone,pos])=>{
+      const n = document.createElement("div");
+      n.className = `nebula ${tone} ${pos}`;
+      document.body.appendChild(n);
     });
   }
 }
-function drawStars() {
-  ctx.clearRect(0, 0, starCanvas.width, starCanvas.height);
-  ctx.fillStyle = "white";
-  for (let s of stars) {
+ensureNebulas();
+
+// === Estrellas en PC (divs) ===
+function createStarDivs(count=140){
+  for(let i=0;i<count;i++){
+    const star = document.createElement("div");
+    star.className = "star";
+    star.style.top  = (Math.random()*window.innerHeight)+"px";
+    star.style.left = (Math.random()*window.innerWidth)+"px";
+    star.style.animationDuration = (2+Math.random()*3)+"s";
+    document.body.appendChild(star);
+    // Aparecen con retardo aleatorio (no todas de golpe)
+    setTimeout(()=>{ star.style.opacity = 1; }, 800 + Math.random()*1600);
+  }
+}
+
+// Destellos “rítmicos” en algunas estrellas (PC)
+let sparkleTimerPC = null;
+function startSparklePC(){
+  const all = () => document.querySelectorAll(".star");
+  sparkleTimerPC = setInterval(()=>{
+    const stars = all();
+    if(stars.length===0) return;
+    // Elegimos 4-6 estrellas random
+    const n = 4 + Math.floor(Math.random()*3);
+    for(let i=0;i<n;i++){
+      const s = stars[Math.floor(Math.random()*stars.length)];
+      if(!s) continue;
+      s.classList.add("sparkle");
+      setTimeout(()=> s.classList.remove("sparkle"), 600);
+    }
+  }, 3800); // ~pulso regular
+}
+
+// === Estrellas en móvil (canvas) ===
+let stars = [];
+function initCanvasStars(count = isMobile ? 90 : 70){
+  stars = [];
+  for(let i=0;i<count;i++){
+    stars.push({
+      x: Math.random()*starCanvas.width,
+      y: Math.random()*starCanvas.height,
+      r: Math.random()*1.6 + 0.4,
+      o: Math.random()*0.9 + 0.1,
+      v: (Math.random()*0.04)+0.01 // velocidad de “twinkle”
+    });
+  }
+}
+
+let rafId = null;
+function drawStars(){
+  ctx.clearRect(0,0,starCanvas.width, starCanvas.height);
+  for(const s of stars){
+    // twinkle
+    s.o += (Math.random()-0.5)*s.v;
+    if(s.o<0.12) s.o = 0.12;
+    if(s.o>1.0)  s.o = 1.0;
+
     ctx.globalAlpha = s.o;
     ctx.beginPath();
     ctx.arc(s.x, s.y, s.r, 0, Math.PI*2);
+    ctx.fillStyle = "#fff";
     ctx.fill();
-    s.o += (Math.random()-0.5)*0.05;
-    if (s.o < 0.1) s.o = 0.1;
-    if (s.o > 1) s.o = 1;
   }
-  requestAnimationFrame(drawStars);
+  rafId = requestAnimationFrame(drawStars);
 }
 
-// Mostrar nebulosas poco a poco
-function fadeInNebulas() {
-  document.querySelectorAll(".nebula").forEach((nebula, i) => {
-    setTimeout(() => { nebula.style.opacity = 1; }, 2000 + i*1000);
+let sparkleTimerCanvas = null;
+function startSparkleCanvas(){
+  sparkleTimerCanvas = setInterval(()=>{
+    if(stars.length===0) return;
+    // Destella 5-7 estrellas
+    const n = 5 + Math.floor(Math.random()*3);
+    for(let i=0;i<n;i++){
+      const idx = Math.floor(Math.random()*stars.length);
+      const s = stars[idx];
+      const oldR = s.r, oldO = s.o;
+      s.r = oldR*1.9;
+      s.o = 1.0;
+      setTimeout(()=>{
+        s.r = oldR;
+        s.o = oldO;
+      }, 520);
+    }
+  }, 3800);
+}
+
+// === Nebulosas: fade-in escalonado ===
+function fadeInNebulas(){
+  const nebulas = document.querySelectorAll(".nebula");
+  nebulas.forEach((neb,i)=>{
+    // Pequeño “stagger” y delay de animación para variedad
+    neb.style.animationDelay = `${i*1.2}s, ${i*0.6}s`; // float, pulse
+    setTimeout(()=>{ neb.style.opacity = 1; }, 1400 + i*900);
   });
 }
 
-// Play
-playBtn.addEventListener("click", () => {
-  audio.load();
-  audio.volume = 0.8;
-  audio.play().then(() => {
-    playBtn.style.display = "none";
-
-    // 1) Estrellas
-    if (isMobile) {
-      initCanvasStars();
-      drawStars();
-    } else {
-      createStarDivs();
-    }
-
-    // 2) Nebulosas
-    fadeInNebulas();
-
-    // 3) Título
-    setTimeout(() => {
-      titulo.style.opacity = 1;
-      titulo.style.transform = "scale(1)";
-    }, 3000);
-  }).catch(err => console.error("Error audio:", err));
-});
-
-// Estrellas fugaces en PC
-function shootingStar(delay) {
-  if (isMobile) return;
-  setTimeout(() => {
+// === Estrella fugaz (solo PC para cuidar performance móvil) ===
+function shootingStar(afterMs){
+  if(isMobile) return;
+  setTimeout(()=>{
     const s = document.createElement("div");
     s.className = "shooting-star";
-    s.style.left = Math.random()*window.innerWidth + "px";
+    s.style.left = (Math.random()*window.innerWidth)+"px";
     document.body.appendChild(s);
-    setTimeout(()=>s.remove(), 2500);
-  }, delay);
+    setTimeout(()=> s.remove(), 2100);
+  }, afterMs);
 }
-shootingStar(10000);
-shootingStar(25000);
-shootingStar(45000);
 
-// Texto secundario según la música
-audio.addEventListener("timeupdate", () => {
+// === Secuencia al presionar play ===
+playBtn.addEventListener("click", ()=>{
+  // Música
+  audio.load();
+  audio.volume = 0.85;
+  audio.play().then(()=>{
+    playBtn.style.display = "none";
+
+    // Estrellas
+    if(isMobile){
+      initCanvasStars();
+      drawStars();
+      startSparkleCanvas();
+    }else{
+      createStarDivs(150);
+      startSparklePC();
+    }
+
+    // Nebulosas, luego Título
+    fadeInNebulas();
+    setTimeout(()=>{
+      titulo.style.opacity  = 1;
+      titulo.style.transform= "scale(1)";
+    }, 2600);
+
+    // Estrellas fugaces (PC)
+    shootingStar(6500);
+    shootingStar(16000);
+    shootingStar(29500);
+    shootingStar(43000);
+  }).catch(err=>{
+    console.error("Error al reproducir audio:", err);
+  });
+});
+
+// === Texto sincronizado con la música ===
+audio.addEventListener("timeupdate", ()=>{
   const t = audio.currentTime;
-  if (t >= 15 && t < 50) {
+  if(t >= 15 && t < 50){
+    if(escenaDiv.textContent !== "🌌 Nuestro viaje comienza..."){
+      escenaDiv.textContent = "🌌 Nuestro viaje comienza...";
+    }
     escenaDiv.style.opacity = 1;
-    escenaDiv.textContent = "🌌 Nuestro viaje comienza...";
-  } else {
+  }else{
     escenaDiv.style.opacity = 0;
   }
 });
 
+// (Opcional) Cuando termine el audio, por ahora no redirigimos.
+// audio.addEventListener("ended", ()=>{ /* luego podemos hacer fade-out o redirigir */ });
+
+// === Limpieza al salir (por si cambias de vistaSPA, etc.) ===
+window.addEventListener("beforeunload", ()=>{
+  if(rafId) cancelAnimationFrame(rafId);
+  if(sparkleTimerPC) clearInterval(sparkleTimerPC);
+  if(sparkleTimerCanvas) clearInterval(sparkleTimerCanvas);
+});
 
 
