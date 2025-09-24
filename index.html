@@ -7,10 +7,10 @@
   <link rel="stylesheet" href="CSS/intro.css" />
 </head>
 <body>
-  <!-- Audio (Planetarium) -->
+  <!-- Audio principal -->
   <audio id="musica" src="music/planetarium.mp3"></audio>
 
-  <!-- Contenedor centrado de textos -->
+  <!-- Textos centrados -->
   <div id="center">
     <div id="titulo">✨ Un viaje musical inspirado en La La Land ✨</div>
     <div id="escena"></div>
@@ -19,20 +19,20 @@
   <!-- Botón inicial -->
   <button id="playBtn">▶ Iniciar</button>
 
-  <!-- Fondo estelar (canvas para móvil, detrás de todo) -->
-  <canvas id="starCanvas"></canvas>
-
-  <!-- Capas de nebulosas / galaxia (PC; el JS hace fade-in escalonado) -->
+  <!-- Capas de efectos (PC) -->
+  <div id="constellations"></div> <!-- Líneas de constelaciones generadas por JS -->
+  <div id="dust"></div>           <!-- Polvo estelar, JS activa .visible -->
   <div class="nebula blue pos-1"></div>
   <div class="nebula pink pos-2"></div>
   <div class="nebula gold pos-3"></div>
 
-  <!-- JS -->
+  <!-- Velo global de oscuridad (rampa de luz controlada por JS) -->
+  <div id="veil"></div>
+
+  <!-- Coreografía -->
   <script src="JS/intro.js"></script>
 </body>
 </html>
-
-
 
 
 
