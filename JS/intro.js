@@ -1,200 +1,309 @@
-/*************************
- * Intro La La Land (PC)
- * Timeline coreografiado
- *************************/
-
-// --------- Selectores base ---------
-const $ = s => document.querySelector(s);
-const $$ = s => document.querySelectorAll(s);
-
-const audio   = $("#musica");
-const btn     = $("#playBtn");
-const titulo  = $("#titulo");
-const escena  = $("#escena");
-const veil    = $("#veil");              // velo global (oscurecimiento)
-const dust    = $("#dust");              // polvo estelar
-const consts  = $("#constellations");    // contenedor de constelaciones
-
-// --------- Utilidades ---------
-function setVeil(value){ // value: 1 (negro total) -> 0 (sin velo)
-  document.documentElement.style.setProperty("--veil", String(value));
-}
-function wait(ms){ return new Promise(r => setTimeout(r, ms)); }
-
-// --------- Estrellas (divs, PC) ---------
-function createStars(count = 160){
-  for(let i=0;i<count;i++){
-    const s = document.createElement("div");
-    s.className = "star";
-    s.style.top  = (Math.random()*window.innerHeight) + "px";
-    s.style.left = (Math.random()*window.innerWidth) + "px";
-    s.style.animationDuration = (2 + Math.random()*3) + "s";
-    // ocultas al inicio; luego haremos fade-in escalonado
-    document.body.appendChild(s);
-    setTimeout(() => { s.style.opacity = 1; }, 1200 + Math.random()*1800); // entrada no brusca
-  }
+/* =========================
+   VARIABLES & BASE
+========================= */
+:root{
+  --bg1:#02030a; --bg2:#0a1030;
+  --blue:rgba(147,197,253,0.30);
+  --pink:rgba(244,114,182,0.30);
+  --gold:rgba(255,235,200,0.22);
+  --star-glow: rgba(255,255,255,0.85);
+  --veil: 1;            /* 1 = negro total, 0 = sin velo (la luz se “levanta” con JS) */
 }
 
-let sparkleTimer = null;
-function startSparkle(){
-  sparkleTimer = setInterval(()=>{
-    const stars = $$(".star");
-    if(!stars.length) return;
-    const n = 4 + Math.floor(Math.random()*3); // 4-6 estrellas
-    for(let i=0;i<n;i++){
-      const s = stars[Math.floor(Math.random()*stars.length)];
-      if(!s) continue;
-      s.classList.add("sparkle");
-      setTimeout(()=> s.classList.remove("sparkle"), 650);
-    }
-  }, 3800); // ritmo suave (~pulso)
+*{ box-sizing: border-box; }
+html,body{ height:100%; }
+
+body{
+  margin:0;
+  height:100vh;
+  overflow:hidden;
+  color:#fff;
+  font-family:"Cinzel", serif;
+  background:
+    radial-gradient(1200px 800px at 70% 20%, #0d1540 0%, transparent 60%),
+    radial-gradient(1000px 700px at 20% 80%, #060b24 0%, transparent 60%),
+    linear-gradient(180deg, var(--bg1), var(--bg2));
+  position:relative;
 }
 
-// --------- Nebulosas ---------
-function showNebulas(){
-  // Si no existen en el HTML, crea las 3 capas
-  let nebulas = $$(".nebula");
-  if(!nebulas.length){
-    [["blue","pos-1"],["pink","pos-2"],["gold","pos-3"]].forEach(([tone,pos])=>{
-      const n = document.createElement("div");
-      n.className = `nebula ${tone} ${pos}`;
-      document.body.appendChild(n);
-    });
-    nebulas = $$(".nebula");
-  }
-  // Fade-in escalonado (sin pops)
-  nebulas.forEach((n,i)=>{
-    setTimeout(()=> n.classList.add("visible"), 5000 + i*1200); // 5.0s, 6.2s, 7.4s aprox
-  });
+/* Viñeta cinematográfica + VELO global de oscuridad controlado por --veil */
+#veil{
+  position:fixed;
+  inset:0;
+  background: rgba(0,0,0, calc(var(--veil)));
+  pointer-events:none;
+  z-index: 50; /* por encima de todo salvo el botón */
+  transition: background 2.5s ease; /* rampa de luz */
+}
+/* Viñeta adicional para bordes más oscuros */
+body::after{
+  content:"";
+  position:fixed; inset:0; pointer-events:none; z-index:5;
+  background: radial-gradient(ellipse at center,
+              transparent 55%, rgba(0,0,0,0.32) 80%, rgba(0,0,0,0.6) 100%);
 }
 
-// --------- Estrellas fugaces (PC) ---------
-function shootingStar(afterMs){
-  setTimeout(()=>{
-    const s = document.createElement("div");
-    s.className = "shooting-star";
-    s.style.left = (Math.random()*window.innerWidth) + "px";
-    document.body.appendChild(s);
-    setTimeout(()=> s.remove(), 2100);
-  }, afterMs);
+/* =========================
+   BOTÓN
+========================= */
+#playBtn{
+  position:absolute;
+  top:50%; left:50%; transform:translate(-50%,-50%);
+  padding:14px 32px;
+  font-size:1.2rem;
+  border:2px solid #fff;
+  border-radius:30px;
+  background:transparent; color:#fff;
+  cursor:pointer;
+  letter-spacing:.4px;
+  transition: background .3s, transform .3s, box-shadow .3s;
+  z-index: 60; /* por encima del velo */
+}
+#playBtn:hover{
+  background: rgba(255,255,255,0.15);
+  transform: translate(-50%,-50%) scale(1.06);
+  box-shadow: 0 0 24px rgba(255,255,255,0.18);
 }
 
-// --------- Constelaciones (líneas finas) ---------
-function drawConstellation({top, left, length, angleDeg, life=3800}){
-  const line = document.createElement("div");
-  line.className = "const-line";
-  line.style.top = top + "px";
-  line.style.left = left + "px";
-  line.style.width = length + "px";
-  line.style.transform = `rotate(${angleDeg}deg) scaleX(0)`; // empieza sin dibujar
-  consts.appendChild(line);
-  // animar “dibujo”
-  requestAnimationFrame(()=> line.classList.add("draw"));
-  // desvanecer y quitar
-  setTimeout(()=> line.classList.add("fade"), life);
-  setTimeout(()=> line.remove(), life + 2200);
+/* =========================
+   TEXTOS CENTRADOS
+========================= */
+#center{
+  position:absolute;
+  top:50%; left:50%; transform:translate(-50%,-50%);
+  text-align:center;
+  width:min(92vw, 900px);
+  padding:0 8px;
+  z-index: 10;
 }
 
-// --------- Polvo estelar ---------
-function activateDust(){
-  if(dust) dust.classList.add("visible");
+#titulo{
+  font-size: clamp(1.6rem, 3.2vw, 2.6rem);
+  letter-spacing:2.5px;
+  text-shadow:
+    0 0 18px rgba(255,255,255,0.55),
+    0 0 42px rgba(147,197,253,0.35);
+  opacity:0; transform: scale(1.12);
+  transition: opacity 2.8s ease, transform 6s ease;
+}
+#escena{
+  font-size: clamp(1.05rem, 2.2vw, 1.6rem);
+  margin-top: 18px;
+  opacity:0;
+  text-shadow: 0 0 12px rgba(255,255,255,0.55);
+  transition: opacity 1.8s ease;
+}
+/* Estados comunes que activará el JS */
+.show{ opacity:1 !important; transform:none !important; }
+.fade-out{ opacity:0 !important; transition: opacity 2.2s ease !important; }
+
+/* =========================
+   ESTRELLAS (PC: div)
+========================= */
+.star{
+  position:absolute;
+  width:2px; height:2px;
+  background:#fff;
+  border-radius:50%;
+  opacity:0; /* ocultas al inicio; JS hace fade-in escalonado */
+  box-shadow: 0 0 8px var(--star-glow);
+  animation: twinkle 3s infinite alternate;
+  z-index:1;
+}
+@keyframes twinkle{
+  from { opacity:0.25; transform: scale(0.85); }
+  to   { opacity:1;    transform: scale(1.28); }
+}
+/* Estado “mágico” temporal que añadirá JS a grupos de estrellas */
+.star.sparkle{
+  transition: transform .55s ease, opacity .55s ease, filter .55s ease, box-shadow .55s ease;
+  transform: scale(2);
+  opacity: 1;
+  box-shadow:
+    0 0 10px #fff,
+    0 0 22px rgba(147,197,253,.7),
+    0 0 34px rgba(147,197,253,.45);
+  filter: drop-shadow(0 0 8px #fff);
 }
 
-// --------- Textos ---------
-function showTitle(){
-  titulo.classList.add("show"); // fade-in + zoom lento (CSS)
+/* =========================
+   NEBULOSAS / GALAXIA
+========================= */
+.nebula{
+  position:absolute;
+  width: 600px; height: 600px;
+  border-radius: 50%;
+  filter: blur(100px);
+  opacity:0; /* inicio invisible, sin pops */
+  z-index:1;
+  animation:
+    float 28s infinite alternate ease-in-out,
+    pulse 12s infinite ease-in-out;
+  will-change: transform, opacity;
+  transition: opacity 2.2s ease; /* suaviza la entrada controlada por JS */
 }
-function showSceneMsg(){
-  escena.textContent = "🌌 Nuestro viaje comienza...";
-  escena.classList.add("show");
+.nebula.blue{ background: radial-gradient(circle, var(--blue), transparent 70%); }
+.nebula.pink{ background: radial-gradient(circle, var(--pink), transparent 70%); }
+.nebula.gold{ background: radial-gradient(circle, var(--gold), transparent 70%); }
+
+/* Posiciones sugeridas */
+.nebula.pos-1{ top:10%; left:18%; }
+.nebula.pos-2{ bottom:14%; right:22%; }
+.nebula.pos-3{ top:48%; left:65%; }
+.nebula.pos-4{ top:22%; right:8%; }
+
+@keyframes float{
+  from{ transform: translate(0,0) rotate(0deg) scale(1); }
+  to  { transform: translate(60px,-40px) rotate(8deg) scale(1.08); }
 }
-function fadeOutTexts(){
-  // Se pidió que se vaya también el título junto al mensaje
-  titulo.classList.add("fade-out");
-  escena.classList.add("fade-out");
+@keyframes pulse{
+  0%,100%{ opacity:.22; }
+  50%    { opacity:.50; }
 }
+/* Activación de visibilidad que pondrá el JS en escalonamiento */
+.nebula.visible{ opacity:1; }
 
-// --------- Rampa de luz global (oscuro -> luminoso) ---------
-async function rampBrightness(){
-  // 0–2s noche cerrada (se mantiene en 1.0)
-  setVeil(1.0);
-  await wait(2000);
-  // 2–5s sube muy poco la luz
-  setVeil(0.70);
-  await wait(3000);
-  // 5–15s otra subida leve
-  setVeil(0.55);
-  await wait(10000);
-  // 15–35s baja más el velo (más luz)
-  setVeil(0.35);
-  await wait(20000);
-  // 35–60s llega al brillo destino
-  setVeil(0.12);
+/* =========================
+   ESTRELLAS FUGACES (PC)
+========================= */
+.shooting-star{
+  position:absolute;
+  width:2px; height:110px;
+  background: linear-gradient(#fff, transparent);
+  transform: rotate(-45deg);
+  top:-120px; opacity:0;
+  animation: fall 2s linear forwards;
+  z-index:2;
 }
-
-// --------- Timeline principal ---------
-async function startTimeline(){
-  // Estrellas base
-  createStars(170);
-  startSparkle();
-
-  // Nebulosas + Título
-  showNebulas();
-  setTimeout(showTitle, 7000);   // 7.0–11.0s
-
-  // Polvo estelar y mensaje secundario (15s)
-  setTimeout(activateDust, 15000);
-  setTimeout(showSceneMsg, 15000);
-
-  // Constelaciones A y B (22–38s aprox.)
-  setTimeout(()=>{
-    drawConstellation({
-      top: window.innerHeight*0.28,
-      left: window.innerWidth*0.18,
-      length: window.innerWidth*0.22,
-      angleDeg: 12
-    });
-  }, 22000);
-  setTimeout(()=>{
-    drawConstellation({
-      top: window.innerHeight*0.62,
-      left: window.innerWidth*0.58,
-      length: window.innerWidth*0.18,
-      angleDeg: -18
-    });
-  }, 30000);
-
-  // Estrellas fugaces pequeñas (29–45s)
-  shootingStar(29000);
-  shootingStar(44000);
-
-  // Despedida de textos (50–53s)
-  setTimeout(fadeOutTexts, 50000);
+@keyframes fall{
+  0%  { transform: translate(0,0) rotate(-45deg); opacity:1; }
+  100%{ transform: translate(-420px,420px) rotate(-45deg); opacity:0; }
 }
 
-// --------- Play handler ---------
-btn.addEventListener("click", async ()=>{
-  audio.load();
-  audio.volume = 0.85;
+/* =========================
+   CONSTELACIONES (líneas finas)
+========================= */
+#constellations{
+  position: fixed; inset:0;
+  z-index:2; pointer-events:none;
+}
+.const-line{
+  position:absolute;
+  height:1px; background: linear-gradient(90deg, transparent, rgba(255,255,255,.85), transparent);
+  box-shadow: 0 0 6px rgba(147,197,253,.6);
+  opacity:.0;
+  transform-origin: left center;
+}
+/* animación para “dibujar” la línea */
+.const-line.draw{
+  animation: drawLine 3.2s ease forwards;
+}
+@keyframes drawLine{
+  0%{ opacity:0; transform: scaleX(0); }
+  20%{ opacity:.9; }
+  100%{ opacity:.35; transform: scaleX(1); }
+}
+/* desvanecer constelación */
+.const-line.fade{
+  transition: opacity 2s ease; opacity:0 !important;
+}
 
-  try{
-    await audio.play();
-    btn.style.display = "none";
+/* =========================
+   POLVO ESTELAR (textura fina)
+========================= */
+#dust{
+  position: fixed; inset:0; z-index:1; pointer-events:none; opacity:.0;
+  background-image:
+    radial-gradient(2px 2px at 20% 30%, rgba(255,255,255,.15) 40%, transparent 41%),
+    radial-gradient(1.5px 1.5px at 60% 70%, rgba(255,255,255,.12) 40%, transparent 41%),
+    radial-gradient(1.5px 1.5px at 80% 40%, rgba(255,255,255,.10) 40%, transparent 41%),
+    radial-gradient(2px 2px at 35% 85%, rgba(255,255,255,.12) 40%, transparent 41%);
+  background-repeat: repeat;
+  animation: drift 60s linear infinite;
+  transition: opacity 2s ease;
+}
+#dust.visible{ opacity:.35; } /* JS la activa en 15s */
+@keyframes drift{
+  from{ background-position: 0 0, 0 0, 0 0, 0 0; }
+  to  { background-position: 600px 240px, 400px 200px, 500px 220px, 300px 160px; }
+}
 
-    // Rampa de luz global (en paralelo)
-    rampBrightness();
+/* =========================
+   EXTRAS ELEGANTES (halo, susurros, spark-click)
+========================= */
 
-    // Coreografía visual
-    startTimeline();
+/* HALO CENTRAL que “respira” (detrás del título) */
+#halo{
+  position:absolute;
+  top:50%; left:50%;
+  transform:translate(-50%,-50%);
+  width:70vmin; height:70vmin;
+  pointer-events:none;
+  z-index:9; /* detrás de #center (z=10) */
+  opacity:0; /* se enciende por JS */
+  background: radial-gradient(circle at 50% 50%,
+              rgba(180,200,255,0.28) 0%,
+              rgba(120,160,255,0.18) 28%,
+              rgba(80,120,220,0.10) 48%,
+              transparent 70%);
+  filter: blur(32px);
+}
+#halo.on{
+  animation: haloPulse 12s ease-in-out infinite;
+  opacity: .16;
+}
+#halo.boost{
+  transition: opacity .8s ease;
+  opacity: .22;
+}
+@keyframes haloPulse{
+  0%,100%{ transform:translate(-50%,-50%) scale(1);   opacity:.14; }
+  50%    { transform:translate(-50%,-50%) scale(1.06); opacity:.20; }
+}
 
-  }catch(err){
-    console.error("Error al reproducir audio:", err);
-  }
-});
+/* “SUSURROS” debajo del mensaje principal */
+#escena #whisper{
+  display:block;
+  margin-top:8px;
+  font-size: clamp(.9rem, 1.8vw, 1.15rem);
+  opacity:0;
+  letter-spacing:.4px;
+  color: rgba(255,255,255,.85);
+  text-shadow: 0 0 8px rgba(255,255,255,.35);
+  transition: opacity .9s ease;
+}
+#escena #whisper.show{ opacity: .72; }
+#escena #whisper.hide{ opacity: 0;   }
 
-// --------- Limpieza por si cambias de página ---------
-window.addEventListener("beforeunload", ()=>{
-  if(sparkleTimer) clearInterval(sparkleTimer);
-});
+/* DESTELLOS EFÍMEROS generados por click */
+.spark-pop{
+  position: absolute;
+  width: 3px; height: 3px;
+  border-radius: 50%;
+  background: #fff;
+  z-index: 3;
+  box-shadow:
+    0 0 8px #fff,
+    0 0 16px rgba(147,197,253,.85),
+    0 0 28px rgba(147,197,253,.55);
+  animation: sparkPop .8s ease-out forwards;
+}
+@keyframes sparkPop{
+  0%   { transform: scale(1);   opacity:1; }
+  60%  { transform: scale(2.2); opacity:.9; }
+  100% { transform: scale(0.2); opacity:0; }
+}
+
+/* =========================
+   RESPONSIVE mínimo
+========================= */
+@media (max-width: 1024px){
+  .nebula{ width:520px; height:520px; filter:blur(90px); }
+}
+@media (max-width: 820px){
+  #titulo{ font-size: clamp(1.4rem, 3.4vw, 2.1rem); }
+  #escena{ font-size: clamp(1rem, 2.4vw, 1.3rem); }
+  .nebula{ width:460px; height:460px; filter:blur(80px); }
+}
 
 
