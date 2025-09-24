@@ -3,7 +3,7 @@
  * - RUSH 40–55s (escala por capas)
  * - BEATS 54–59s (14 destellos cerca del título)
  * - WARP 58.8–~60s (Canvas fluido ~1.2s)
- * - BOOM ~60s (flash + blackout, levemente retrasado)
+ * - BOOM ~62s (flash + blackout)
  * - Tester de tiempo: ver y saltar a cualquier marca
  * - Clic = ráfaga | Mantener = lluvia
  **************************************************************/
@@ -30,13 +30,13 @@ const SETTINGS = {
   T_RUSH_START_MS   : 40000,
   T_WARP_START_MS   : 58800,  // 58.8s (Canvas warp ~1.2s)
   T_PREBOOM_MS      : 59500,  // 59.5s (tensión previa)
-  T_BOOM_MS         : 62000,  // BOOM levemente más tarde (ajusta aquí)
+  T_BOOM_MS         : 62000,  // 62.0s (retrasado como pediste)
 
   // Beats sincronizados alrededor del título (54–59s)
-  T_STAR_BEATS_START_MS : 54000, // inicio de “tu tu…”
-  STAR_BEATS_COUNT      : 14,    // 14 golpes
-  STAR_BEATS_WINDOW_MS  : 6100,  // 54.0 → 59.0s (reparte 14)
-  STAR_BEAT_DURATION_MS : 280,   // duración del pulso de cada estrella
+  T_STAR_BEATS_START_MS : 54000, // inicio del patrón
+  STAR_BEATS_COUNT      : 14,    // 14 “tu”
+  STAR_BEATS_WINDOW_MS  : 6100,  // 54.0 → ~60.1s (≈ 435 ms entre beats)
+  STAR_BEAT_DURATION_MS : 280,   // duración de cada destello
 
   // Rampa de luz del velo
   RAMP: [
@@ -367,8 +367,8 @@ function scheduleStarBeats(offsetMs){
   if(!list.length) return;
 
   const N = SETTINGS.STAR_BEATS_COUNT;
-  const windowMs = SETTINGS.STAR_BEATS_WINDOW_MS; // 5000 ms
-  const step = windowMs / N; // ~357 ms
+  const windowMs = SETTINGS.STAR_BEATS_WINDOW_MS; // 6100 ms
+  const step = windowMs / N; // ≈ 435 ms
   const used = new Set();
 
   for(let i=0; i<N; i++){
@@ -486,7 +486,7 @@ async function doBoom(fromSkip=false){
   setTimeout(()=> setVar("--flash-opacity", 0), parseInt(getComputedStyle(root).getPropertyValue("--flash-duration")) || 140);
   root.classList.add("boom");
 
-  // Queda en negro. Cuando exista la segunda escena:
+  // Queda en negro. (Cuando exista la segunda escena)
   // window.location.href = "lalaland.html";
 }
 
@@ -544,7 +544,7 @@ function startTimelineWithOffset(offsetMs){
   scheduleAt(SETTINGS.T_SHOOT_1_MS, offsetMs, ()=> shootingStar(0));
   scheduleAt(SETTINGS.T_SHOOT_2_MS, offsetMs, ()=> shootingStar(0));
 
-  // Beats 54–59s (lucecitas cerca del título, uno por uno)
+  // Beats 54–59s (luces cerca del título)
   scheduleStarBeats(offsetMs);
 
   // Despedida de textos
@@ -607,3 +607,4 @@ window.addEventListener("beforeunload", ()=>{
   stopWhispers();
   stopSparkle();
 });
+
