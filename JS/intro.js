@@ -3,7 +3,7 @@
  * - RUSH 40–55s (escala por capas)
  * - BEATS 54–59s (14 destellos cerca del título)
  * - WARP 58.8–~60s (Canvas fluido ~1.2s)
- * - BOOM ~62s (flash + blackout)
+ * - BOOM ~62s (flash + blackout) con guardia por tiempo real
  * - Tester de tiempo: ver y saltar a cualquier marca
  * - Clic = ráfaga | Mantener = lluvia
  **************************************************************/
@@ -30,12 +30,12 @@ const SETTINGS = {
   T_RUSH_START_MS   : 40000,
   T_WARP_START_MS   : 58800,  // 58.8s (Canvas warp ~1.2s)
   T_PREBOOM_MS      : 59500,  // 59.5s (tensión previa)
-  T_BOOM_MS         : 62000,  // 62.0s (retrasado como pediste)
+  T_BOOM_MS         : 62000,  // 62.0s (retrasado)
 
   // Beats sincronizados alrededor del título (54–59s)
   T_STAR_BEATS_START_MS : 54000, // inicio del patrón
   STAR_BEATS_COUNT      : 14,    // 14 “tu”
-  STAR_BEATS_WINDOW_MS  : 6100,  // 54.0 → ~60.1s (≈ 435 ms entre beats)
+  STAR_BEATS_WINDOW_MS  : 6100,  // ~435 ms entre beats
   STAR_BEAT_DURATION_MS : 280,   // duración de cada destello
 
   // Rampa de luz del velo
@@ -82,6 +82,14 @@ const SETTINGS = {
   DEV_HUD        : true,   // ← pon false para ocultarlo
   DEV_START_AT_MS: null,   // ej: 56000 para arrancar cerca del final
 };
+
+/* Marca de build para confirmar que cargó este JS */
+const __INTRO_BUILD__ = "fix-boom-beats-guard-002";
+console.log("[IntroJS] Build:", __INTRO_BUILD__);
+
+/* Flags runtime */
+let beatsStarted = false;   // evita reprogramar beats varias veces
+let boomGuarded  = false;   // evita ejecutar boom más de una vez
 
 /* Mobile tuning */
 (function tuneForMobile(){
@@ -344,7 +352,7 @@ function getStarsAroundTitle(padding = 140){
     }
   });
 
-  // ordena por proximidad al centro del título (queda armónico)
+  // ordena por proximidad al centro del título
   const cx = r.left + r.width/2;
   const cy = r.top  + r.height/2;
   list.sort((a,b)=>{
@@ -359,15 +367,31 @@ function getStarsAroundTitle(padding = 140){
 }
 function beatPulse(star, duration){
   if(!star) return;
+  // Refuerzo inline por si el CSS anterior sigue cacheado
+  const prevBox = star.style.boxShadow;
+  const prevTrf = star.style.transform;
+  const prevOp  = star.style.opacity;
+
   star.classList.add("beat");
-  setTimeout(()=> star.classList.remove("beat"), duration);
+  star.style.boxShadow =
+    "0 0 16px #fff, 0 0 36px rgba(147,197,253,.95), 0 0 70px rgba(147,197,253,.66)";
+  star.style.transform = "scale(2.8)";
+  star.style.opacity   = "1";
+
+  setTimeout(()=>{
+    star.classList.remove("beat");
+    star.style.boxShadow = prevBox;
+    star.style.transform = prevTrf;
+    star.style.opacity   = prevOp;
+  }, duration);
 }
 function scheduleStarBeats(offsetMs){
   const list = getStarsAroundTitle(140);
   if(!list.length) return;
+  beatsStarted = true; // marca que ya programamos beats
 
   const N = SETTINGS.STAR_BEATS_COUNT;
-  const windowMs = SETTINGS.STAR_BEATS_WINDOW_MS; // 6100 ms
+  const windowMs = SETTINGS.STAR_BEATS_WINDOW_MS;
   const step = windowMs / N; // ≈ 435 ms
   const used = new Set();
 
@@ -424,7 +448,6 @@ function startWarpCanvas(){
     wctx.clearRect(0,0,warpCanvas.width, warpCanvas.height);
 
     for(const p of particles){
-      // dirección base + ligera curvatura (natural)
       const ang = p.a + (e-0.5)*p.noise;
       const vx = Math.cos(ang), vy = Math.sin(ang);
       const dist = e * p.speed * SETTINGS.WARP_DURATION_MS * 0.8;
@@ -491,6 +514,26 @@ async function doBoom(fromSkip=false){
 }
 
 /* ============================================================
+   [K2] GUARDIA POR TIEMPO REAL (beats + boom exactos)
+   ============================================================ */
+function onAudioTick(){
+  const ms = (audio.currentTime * 1000) | 0;
+
+  // Si no programamos beats (o saltaste con HUD), lánzalos al pasar 54s
+  if(!beatsStarted && ms >= SETTINGS.T_STAR_BEATS_START_MS - 50){
+    beatsStarted = true;
+    const offset = ms; // alinea a la posición actual
+    scheduleStarBeats(offset);
+  }
+
+  // BOOM exacto a partir del reloj real del audio
+  if(!boomGuarded && ms >= SETTINGS.T_BOOM_MS - 15){
+    boomGuarded = true;
+    doBoom(false);
+  }
+}
+
+/* ============================================================
    [L] SCHEDULER con OFFSET (para DEV HUD)
    ============================================================ */
 function scheduleAt(absMs, offsetMs, fn){ const delay=absMs-offsetMs; if(delay<=0){ try{fn();}catch{} return; } setT(fn, delay); }
@@ -516,7 +559,7 @@ function resetVisuals(){
   }
   setVeil(1);
   stopWhispers(); stopSparkle();
-  boomDone=false;
+  beatsStarted=false; boomGuarded=false;
 }
 
 function startTimelineWithOffset(offsetMs){
@@ -581,6 +624,10 @@ btn.addEventListener("click", async ()=>{
   audio.load(); audio.volume=SETTINGS.AUDIO_VOLUME;
   try{
     await audio.play(); btn.style.display="none";
+    // Guardia por tiempo real (beats y boom exactos)
+    audio.removeEventListener("timeupdate", onAudioTick);
+    audio.addEventListener("timeupdate", onAudioTick);
+
     rampBrightness();
     mountDevHUD();
     if(SETTINGS.DEV_START_AT_MS!=null){ jumpTo(SETTINGS.DEV_START_AT_MS); }
