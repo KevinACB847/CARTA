@@ -1,5 +1,5 @@
 /* =========================================================
-   INTRO LA LA LAND — CSS COMPLETO (beats más brillantes)
+   INTRO LA LA LAND — CSS COMPLETO (beats fuertes + warp + boom)
    ========================================================= */
 
 /* =========================
@@ -125,21 +125,21 @@ body::after{
 ========================= */
 .star{
   position:absolute; width:2px; height:2px; background:#fff; border-radius:50%;
-  opacity:0.95; /* más visibles por defecto */
+  opacity:.95; /* más visibles por defecto */
   box-shadow: 0 0 8px rgba(255,255,255,.85);  /* ↑ glow base */
   z-index:1; will-change: transform, opacity; backface-visibility: hidden;
   --star-scale: 1; transform: translateZ(0) scale(var(--star-scale));
   animation: twinkleOpacity 3s infinite alternate;
 }
 @keyframes twinkleOpacity{
-  from{ opacity:.55; }   /* antes .25 → menos apagadas */
-  to  { opacity:1;    }
+  from{ opacity:.55; }
+  to  { opacity:1; }
 }
 .star.near{ z-index:3; filter: drop-shadow(0 0 8px rgba(255,255,255,.75)); }
 .star.mid { z-index:2; filter: drop-shadow(0 0 5px rgba(255,255,255,.55)); }
 .star.far { z-index:1; filter: drop-shadow(0 0 3px rgba(255,255,255,.35)); opacity:.9; }
 
-/* Sparkle aleatorio (del JS) — subimos intensidad */
+/* Sparkle aleatorio (del JS) — más intenso */
 .star.sparkle{
   transition: transform .55s ease, opacity .55s ease, filter .55s ease, box-shadow .55s ease;
   transform: scale(2.1);
@@ -151,15 +151,15 @@ body::after{
   filter: drop-shadow(0 0 10px #fff);
 }
 
-/* === Beats 54–59s: destello puntual sincronizado (MUY visible) === */
+/* Beats 54–59s: destello puntual sincronizado (MUY visible) */
 .star.beat{
   animation: none !important;             /* pausa twinkle */
   opacity: 1 !important;
-  transform: scale(2.6);                  /* más grande que antes */
+  transform: scale(2.8);                  /* grande */
   box-shadow:
-    0 0 16px #fff,                        /* ↑ centro */
-    0 0 36px rgba(147,197,253,.90),       /* ↑ halo azulado */
-    0 0 64px rgba(147,197,253,.60);       /* ↑ aura amplia */
+    0 0 16px #fff,
+    0 0 36px rgba(147,197,253,.95),
+    0 0 70px rgba(147,197,253,.66);
   filter: drop-shadow(0 0 12px rgba(255,255,255,.9));
   transition: transform 140ms ease, box-shadow 140ms ease, opacity 140ms ease;
 }
@@ -340,7 +340,7 @@ body::after{
     animation-iteration-count:1 !important;
     transition-duration:0ms !important;
   }
-  .nebula, .star, .shooting-star, #halo{ animation:none !重要; }
+  .nebula, .star, .shooting-star, #halo{ animation:none !important; }
   .rush .star, .rush .nebula{ transform:none !important; }
   #dust{ animation:none !important; }
 }
