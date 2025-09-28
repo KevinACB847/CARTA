@@ -28,8 +28,8 @@ const SETTINGS = {
 
   // Rush → Warp → Boom
   T_RUSH_START_MS   : 40000,
-  T_WARP_START_MS   : 58000,  // 58.8s (Canvas warp ~1.2s)
-  T_PREBOOM_MS      : 58000,  // 59.5s (tensión previa)
+  T_WARP_START_MS   : 60000,  // 58.8s (Canvas warp ~1.2s)
+  T_PREBOOM_MS      : 60000,  // 59.5s (tensión previa)
   T_BOOM_MS         : 61000,  // 62.0s (retrasado)
 
   // Beats sincronizados alrededor del título (54–59s)
