@@ -1,112 +1,86 @@
 /* ===========================
-   VIAJE MÁGICO — CSS
-   Activo solo cuando el <body> tenga .phase--viaje
+   VIAJE — Estilos autónomos
    =========================== */
-
-body.phase--viaje{
-  /* Paleta y fondo */
-  --vj-bg-1: #05060b;
-  --vj-bg-2: #0a0e1a;
-
-  /* Brillo / saturación (el JS los subirá levemente) */
-  --vj-bright: 1.00;     /* 1.00 → 1.06 hacia el final */
-  --vj-sat:    1.00;     /* 1.00 → 1.06 */
-
-  /* Velocidad global de twinkle/animaciones de estrellas */
-  --vj-speed: 1;         /* 1.00 → ~1.18 */
-
-  /* Profundidad parallax */
-  --vj-depth-far:   7px;
-  --vj-depth-mid:  12px;
-  --vj-depth-near: 18px;
-
-  /* Tamaños de estrellas */
-  --vj-star-far:  1.1px;
-  --vj-star-mid:  1.6px;
-  --vj-star-near: 2.2px;
-
-  /* Textos y acentos */
-  --vj-whisper: #e8ecff;
-  --vj-whisper-shadow: 0 0 12px rgba(140,170,255,.35);
-  --vj-accent:  #ffdca8;
-
-  /* Zoom global “respirando” */
-  --vj-zoom: 1.00;       /* 1.00 → 1.045 */
-
-  background: radial-gradient(1200px 800px at 50% 60%, var(--vj-bg-2), var(--vj-bg-1) 65%);
-  filter: brightness(var(--vj-bright)) saturate(var(--vj-sat));
-  transform: scale(var(--vj-zoom));
-  transition: filter .6s ease, background-color .6s ease, transform .6s ease;
+:root{
+  --v-bg-1:#05060b; --v-bg-2:#0a0e1a;
+  --v-bright:1; --v-sat:1; --v-zoom:1;
+  --v-depth-far:7px; --v-depth-mid:12px; --v-depth-near:18px;
+  --v-star-far:1.1px; --v-star-mid:1.6px; --v-star-near:2.2px;
+  --v-speed:1; /* multiplicador de twinkle/animación */
+  --v-whisper:#e8ecff; --v-whisper-shadow:0 0 12px rgba(140,170,255,.35);
 }
 
-/* Sky y capas (no interfieren con la intro si no hay .phase--viaje) */
-body.phase--viaje #sky{ position:fixed; inset:0; pointer-events:none; will-change: transform, filter; }
-body.phase--viaje .layer{ position:absolute; inset:0; }
-body.phase--viaje .star{
-  will-change: opacity, transform;
-  animation-duration: calc(var(--tw, 2.8s) / var(--vj-speed));
+*{box-sizing:border-box}
+html,body{height:100%}
+body{
+  margin:0; background:radial-gradient(1200px 800px at 50% 60%, var(--v-bg-2), var(--v-bg-1) 65%);
+  color:#fff; overflow:hidden; font-family:ui-sans-serif, system-ui, "Segoe UI", Roboto, Arial, sans-serif;
+  filter:brightness(var(--v-bright)) saturate(var(--v-sat)); transform:scale(var(--v-zoom));
+  transition:filter .6s ease, transform .6s ease, background-color .6s ease;
 }
 
-/* Constelaciones (canvas) */
-body.phase--viaje #constellations{
-  position:absolute; inset:0; mix-blend-mode: screen; opacity:.85; pointer-events:none;
+/* Sky/capas */
+#v-sky{position:fixed; inset:0; pointer-events:none;}
+.v-layer{position:absolute; inset:0; filter:drop-shadow(0 0 2px rgba(255,255,255,.05))}
+.v-star{
+  position:absolute; width:var(--s,2px); height:var(--s,2px);
+  background:radial-gradient(circle,#fff,rgba(255,255,255,.65) 60%,transparent 70%);
+  border-radius:50%;
+  opacity:var(--o,.8);
+  animation:v-twinkle calc(var(--tw,2.8s)/var(--v-speed)) linear infinite;
+}
+@keyframes v-twinkle{
+  0%,100%{opacity:var(--tw-min,.5); transform:scale(1)}
+  50%{opacity:var(--tw-max,.9); transform:scale(1.06)}
 }
 
-/* Susurros */
-body.phase--viaje #whispers{ position:absolute; inset:0; pointer-events:none; }
-body.phase--viaje .whisper{
-  position:absolute;
-  font-size: clamp(14px, 2.4vw, 28px);
-  line-height: 1.15;
-  letter-spacing: .5px;
-  color: var(--vj-whisper);
-  text-shadow: var(--vj-whisper-shadow);
-  opacity: 0;
-  animation: vj-whisper 3.6s ease forwards;
+/* Canvas constelaciones */
+#v-constellations{position:absolute; inset:0; pointer-events:none; mix-blend-mode:screen; opacity:.85}
+
+/* Whispers */
+#v-whispers{position:absolute; inset:0; pointer-events:none;}
+.v-whisper{
+  position:absolute; opacity:0; color:var(--v-whisper); text-shadow:var(--v-whisper-shadow);
+  font-size:clamp(14px,2.4vw,28px); letter-spacing:.5px; line-height:1.15;
+  animation:v-whisper 3.6s ease forwards;
 }
-@keyframes vj-whisper{
-  0%   { opacity:0; transform: translateY(6px) scale(.98); filter: blur(2px);}
-  10%  { opacity:.92; transform: translateY(0) scale(1);    filter: blur(0);}
-  85%  { opacity:.92; }
-  100% { opacity:0; transform: translateY(-8px) scale(.99); filter: blur(1px);}
+@keyframes v-whisper{
+  0%{opacity:0; transform:translateY(6px) scale(.98); filter:blur(2px)}
+  10%{opacity:.92; transform:translateY(0) scale(1); filter:blur(0)}
+  85%{opacity:.92}
+  100%{opacity:0; transform:translateY(-8px) scale(.99); filter:blur(1px)}
 }
 
-/* Chispas (tap/click) */
-body.phase--viaje #sparkles{ position:fixed; inset:0; pointer-events:none; }
-body.phase--viaje .sparkle{
+/* Sparkles (tap/click) */
+#v-sparkles{position:fixed; inset:0; pointer-events:none;}
+.v-sparkle{
   position:absolute; width:10px; height:10px; border-radius:50%;
-  background: radial-gradient(circle, #fff, rgba(255,255,255,.4) 60%, transparent 70%);
-  box-shadow: 0 0 16px rgba(255,255,255,.65);
-  transform: translate(-50%,-50%) scale(.6);
-  opacity:.9; animation: vj-spark .85s ease-out forwards;
+  background:radial-gradient(circle,#fff,rgba(255,255,255,.4) 60%,transparent 70%);
+  box-shadow:0 0 16px rgba(255,255,255,.65);
+  transform:translate(-50%,-50%) scale(.6);
+  opacity:.9; animation:v-spark .85s ease-out forwards;
 }
-@keyframes vj-spark{ to{ transform: translate(-50%,-50%) scale(1.8); opacity:0; } }
+@keyframes v-spark{to{transform:translate(-50%,-50%) scale(1.8); opacity:0}}
 
-/* Micro destello de preparación (lo inyectará el JS) */
-body.phase--viaje .vj-flash{
-  position: fixed; inset:0; pointer-events:none;
-  background: radial-gradient(circle at 50% 50%, rgba(255,255,255,.16), rgba(255,255,255,0) 60%);
-  animation: vj-flash .1s ease-out forwards;
-}
-@keyframes vj-flash{ from{opacity:.9} to{opacity:0} }
+/* Flash corto */
+.v-flash{position:fixed; inset:0; pointer-events:none;
+  background:radial-gradient(circle at 50% 50%, rgba(255,255,255,.16), rgba(255,255,255,0) 60%);
+  animation:v-flash .1s ease-out forwards;}
+@keyframes v-flash{from{opacity:.9} to{opacity:0}}
 
-/* Rampas de brillo/saturación */
-body.phase--viaje.body-ramp-1{ filter: brightness(1.04) saturate(1.04); }
-body.phase--viaje.body-ramp-2{ filter: brightness(1.06) saturate(1.06); }
-
-/* Blink conjunto de constelaciones */
-body.phase--viaje .vj-blink{ animation: vj-blink .5s ease-in-out; }
-@keyframes vj-blink{ 0%{opacity:.85} 50%{opacity:.3} 100%{opacity:.85} }
-
-/* Estado preclímax (últimos ~5s del viaje) */
-body.phase--viaje.vj-preclimax{
-  --vj-bright: 1.06;
-  --vj-zoom:   1.045;
+/* UI */
+#v-ui{position:fixed; left:16px; bottom:16px; z-index:10; pointer-events:auto}
+#v-play{
+  background:#101625; color:#fff; border:1px solid #26324d; padding:10px 16px; border-radius:999px;
+  cursor:pointer; font-weight:600;
 }
 
-/* Salvaguarda: sin .phase--viaje, todo lo del viaje queda oculto */
-body:not(.phase--viaje) #constellations,
-body:not(.phase--viaje) #whispers,
-body:not(.phase--viaje) #sparkles{
-  display: none !important;
-}
+/* Estados de rampa/preclímax (se aplican al <body> vía JS) */
+body.v-ramp-1{filter:brightness(1.04) saturate(1.04)}
+body.v-preclimax{--v-bright:1.06; --v-zoom:1.045}
+
+/* Salvaguarda: si por algo no hay viaje activo, oculta overlays */
+body:not(.v-active) #v-constellations,
+body:not(.v-active) #v-whispers,
+body:not(.v-active) #v-sparkles{display:none}
+
