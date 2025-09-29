@@ -2,50 +2,56 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
-  <title>Viaje — La La Land</title>
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1.0, maximum-scale=1.0"
+  />
+  <title>Viaje — Planetarium (1:01–2:25)</title>
 
-  <!-- CSS mínimo anti-blanco -->
+  <!-- Anti-flash mínimo antes de cargar el CSS -->
   <style>
     html,body{height:100%}
-    body{margin:0;background:#0a0e1a;color:#fff;overflow:hidden;
-         font-family:system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif}
-    #v-ui{position:fixed;left:16px;bottom:16px;z-index:10}
-    #v-play{background:#101625;color:#fff;border:1px solid #26324d;
-            padding:10px 16px;border-radius:999px;cursor:pointer;font-weight:600}
+    body{margin:0;background:#0b0f1d;color:#f2efe9;overflow:hidden}
   </style>
 
-  <!-- Estilos del VIAJE -->
-  <link rel="stylesheet" href="CSS/viaje.css?v=4" />
-  <meta name="theme-color" content="#000000" />
+  <!-- Estilos del viaje -->
+  <link rel="stylesheet" href="CSS/viaje.css" />
+  <meta name="theme-color" content="#0b0f1d" />
 </head>
 <body>
-  <!-- Audio del VIAJE -->
-  <audio id="v-audio" src="music/planetarium.mp3" preload="auto"></audio>
 
-  <!-- Raíz del VIAJE -->
-  <div id="v-root">
-    <div id="v-sky" aria-hidden="true">
-      <div class="v-layer v-far"  id="v-layer-far"></div>
-      <div class="v-layer v-mid"  id="v-layer-mid"></div>
-      <div class="v-layer v-near" id="v-layer-near"></div>
+  <!-- Audio (el JS usa document.querySelector('audio')) -->
+  <audio id="audio" src="music/planetarium.mp3" preload="auto"></audio>
 
-      <!-- Nebulosas/glares -->
-      <div id="v-glows"></div>
+  <!-- Escena principal (estructura que esperan el CSS/JS) -->
+  <div class="stage v-vignette" id="stage" aria-label="Viaje Planetarium">
+    <!-- Fondo pintado por JS: degradado, polvo, bokeh, nebulosas -->
+    <canvas id="bgCanvas"></canvas>
 
-      <!-- Canvas + overlays -->
-      <canvas id="v-constellations"></canvas>
-      <div id="v-whispers"></div>
-      <div id="v-sparkles"></div>
-    </div>
+    <!-- (Opcional) Foto-cameo encima del fondo; puedes duplicar/alternar por JS -->
+    <!-- <img class="v-photo" id="v-photo" src="IMG/cameo1.jpg" alt="" aria-hidden="true" /> -->
 
-    <div id="v-ui">
-      <button id="v-play" type="button" aria-label="Iniciar viaje">▶ Iniciar</button>
+    <!-- Foco dorado elíptico (overlay) -->
+    <div class="foco-dorado"></div>
+
+    <!-- FX: rayos curvos, notas-luz, fugaces -->
+    <canvas id="fxCanvas"></canvas>
+
+    <!-- Overlays cinematográficos -->
+    <div class="grain-overlay"></div>
+    <div class="flash" id="v-flash"></div>
+    <div class="v-whisper" id="v-whisper" aria-live="polite"></div>
+
+    <!-- UI mínima: botón iniciar (obliga interacción para audio) -->
+    <div class="ui">
+      <button class="btn-start" id="btnStart" type="button" aria-label="Iniciar viaje">
+        Iniciar
+      </button>
     </div>
   </div>
 
-  <!-- JS del VIAJE -->
-  <script src="JS/viaje.js?v=4"></script>
+  <!-- Motor del viaje -->
+  <script src="JS/viaje.js"></script>
 
   <noscript>
     <div style="position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:#000;color:#fff;padding:24px;text-align:center;">
