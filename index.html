@@ -10,6 +10,8 @@
 
   <!-- Estilos -->
   <link rel="stylesheet" href="CSS/intro.css" />
+  <!-- Viaje (no afecta hasta activar .phase--viaje) -->
+  <link rel="stylesheet" href="CSS/viaje.css" />
 
   <!-- Color del navegador en móvil (opcional) -->
   <meta name="theme-color" content="#000000" />
@@ -18,34 +20,51 @@
   <!-- Audio principal (se inicia con el botón para cumplir políticas) -->
   <audio id="musica" src="music/planetarium.mp3" preload="auto"></audio>
 
+  <!-- ====== INTRO (OCULTA TEMPORALMENTE PARA PROBAR SOLO EL VIAJE) ====== -->
   <!-- Contenido centrado -->
-  <div id="center" role="region" aria-label="Presentación">
+  <div id="center" role="region" aria-label="Presentación" style="display:none">
     <div id="titulo">✨ Un viaje musical inspirado en La La Land ✨</div>
     <div id="escena"></div>
   </div>
 
-  <!-- Capas de efectos (no capturan clics) -->
-  <div id="constellations" aria-hidden="true"></div>  <!-- Líneas de constelaciones -->
-  <div id="dust" aria-hidden="true"></div>            <!-- Polvo estelar -->
-  <div id="halo" aria-hidden="true"></div>            <!-- Halo central -->
+  <!-- Capas de efectos intro (renombrado y oculto para evitar choques) -->
+  <div id="constellationsIntro" aria-hidden="true" style="display:none"></div>
+  <div id="dust" aria-hidden="true" style="display:none"></div>
+  <div id="halo" aria-hidden="true" style="display:none"></div>
 
-  <!-- Nebulosas (si faltan, el JS las crea) -->
-  <div class="nebula blue pos-1" aria-hidden="true"></div>
-  <div class="nebula pink pos-2" aria-hidden="true"></div>
-  <div class="nebula gold pos-3" aria-hidden="true"></div>
+  <!-- Nebulosas (intro) -->
+  <div class="nebula blue pos-1"  aria-hidden="true" style="display:none"></div>
+  <div class="nebula pink pos-2"  aria-hidden="true" style="display:none"></div>
+  <div class="nebula gold pos-3"  aria-hidden="true" style="display:none"></div>
 
-  <!-- Velo global de oscuridad (controlado por variables CSS) -->
-  <div id="veil" aria-hidden="true"></div>
+  <!-- Velo global (intro) -->
+  <div id="veil" aria-hidden="true" style="display:none"></div>
 
   <!-- Botón inicial (anti-bloqueo de autoplay) -->
   <button id="playBtn" type="button" aria-label="Iniciar experiencia">
     ▶ Iniciar
   </button>
 
-  <!-- UI adicional (hint, skip, flash) la inyecta el JS en runtime -->
+  <!-- ====== SCRIPTS ====== -->
 
-  <!-- JS principal (timeline + rush + warp + boom + interacciones) -->
-  <script src="JS/intro.js?v=3"></script>
+  <!-- Desactivamos temporalmente la intro -->
+  <!-- <script src="JS/intro.js?v=3"></script> -->
+
+  <!-- Activamos el VIAJE -->
+  <script defer src="JS/viaje.js?v=1"></script>
+
+  <!-- Arranque directo del VIAJE (desde 1:01) al pulsar el botón -->
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      const audio = document.getElementById('musica');
+      const btn   = document.getElementById('playBtn');
+
+      btn.addEventListener('click', async () => {
+        try { audio.currentTime = 61; await audio.play(); } catch(e){}
+        window.Viaje && window.Viaje.start(); // activa body.phase--viaje y efectos
+      });
+    });
+  </script>
 
   <!-- Fallback sin JS -->
   <noscript>
@@ -55,8 +74,6 @@
   </noscript>
 </body>
 </html>
-
-
 
 
 
