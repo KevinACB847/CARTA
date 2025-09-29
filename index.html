@@ -5,20 +5,18 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
   <title>Viaje — La La Land</title>
 
-  <!-- CSS crítico (fallback: evita pantalla blanca aunque falle el externo) -->
+  <!-- CSS básico de seguridad (evita pantallas blancas) -->
   <style>
     html,body{height:100%}
     body{margin:0;background:#0a0e1a;color:#fff;overflow:hidden;
          font-family:system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif}
     #v-ui{position:fixed;left:16px;bottom:16px;z-index:10}
     #v-play{background:#101625;color:#fff;border:1px solid #26324d;
-           padding:10px 16px;border-radius:999px;cursor:pointer;font-weight:600}
-    /* si todo carga bien, el externo sobrescribe esto */
+            padding:10px 16px;border-radius:999px;cursor:pointer;font-weight:600}
   </style>
 
-  <!-- Estilos del VIAJE (externo) -->
-  <link rel="stylesheet" href="CSS/viaje.css?v=2" />
-
+  <!-- Estilos del VIAJE (autónomos) -->
+  <link rel="stylesheet" href="CSS/viaje.css?v=3" />
   <meta name="theme-color" content="#000000" />
 </head>
 <body>
@@ -39,36 +37,11 @@
 
     <div id="v-ui">
       <button id="v-play" type="button" aria-label="Iniciar viaje">▶ Iniciar</button>
-      <span id="v-debug" style="margin-left:10px;opacity:.6;font-size:12px"></span>
     </div>
   </div>
 
-  <!-- JS del VIAJE -->
-  <script src="JS/viaje.js?v=2"></script>
-
-  <!-- Arranque seguro + mensaje de debug si falla algo -->
-  <script>
-    (function(){
-      const dbg = (m)=>{ const s=document.getElementById('v-debug'); if(s) s.textContent=m; };
-      document.addEventListener('DOMContentLoaded', ()=>{
-        dbg('listo');
-        const audio = document.getElementById('v-audio');
-        const btn   = document.getElementById('v-play');
-        if(!audio){ dbg('sin audio'); return; }
-        if(!btn){ dbg('sin botón'); return; }
-
-        btn.addEventListener('click', async ()=>{
-          try{ audio.currentTime = 61; await audio.play(); }catch(e){ /* ok */ }
-          if(window && window.Viaje && typeof window.Viaje.start === 'function'){
-            window.Viaje.start();
-            dbg('viaje on');
-          } else {
-            dbg('NO cargó JS/viaje.js');
-          }
-        });
-      });
-    })();
-  </script>
+  <!-- JS del VIAJE (no hay scripts de debug; el propio viaje maneja el botón) -->
+  <script src="JS/viaje.js?v=3"></script>
 
   <noscript>
     <div style="position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:#000;color:#fff;padding:24px;text-align:center;">
@@ -77,8 +50,6 @@
   </noscript>
 </body>
 </html>
-
-
 
 
 
