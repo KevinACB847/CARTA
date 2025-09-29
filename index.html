@@ -1,79 +1,47 @@
-<!DOCTYPE html>
-<html lang="es">
-<head>
-  <meta charset="UTF-8" />
-  <meta
-    name="viewport"
-    content="width=device-width, initial-scale=1.0, maximum-scale=1.0"
-  />
-  <title>Intro La La Land</title>
+<script>
+  // Arranca el VIAJE desde 1:01 y genera el campo de estrellas del viaje
+  document.addEventListener('DOMContentLoaded', () => {
+    const audio = document.getElementById('musica');
+    const btn   = document.getElementById('playBtn');
 
-  <!-- Estilos -->
-  <link rel="stylesheet" href="CSS/intro.css" />
-  <!-- Viaje (no afecta hasta activar .phase--viaje) -->
-  <link rel="stylesheet" href="CSS/viaje.css" />
+    btn.addEventListener('click', async () => {
+      try { audio.currentTime = 61; await audio.play(); } catch(e){}
+      window.Viaje && window.Viaje.start();
 
-  <!-- Color del navegador en móvil (opcional) -->
-  <meta name="theme-color" content="#000000" />
-</head>
-<body>
-  <!-- Audio principal (se inicia con el botón para cumplir políticas) -->
-  <audio id="musica" src="music/planetarium.mp3" preload="auto"></audio>
+      // === genera estrellas si aún no existen ===
+      setTimeout(() => {
+        const far  = document.getElementById('layer-far');
+        const mid  = document.getElementById('layer-mid');
+        const near = document.getElementById('layer-near');
+        if (!far || !mid || !near) return;
 
-  <!-- ====== INTRO (OCULTA TEMPORALMENTE PARA PROBAR SOLO EL VIAJE) ====== -->
-  <!-- Contenido centrado -->
-  <div id="center" role="region" aria-label="Presentación" style="display:none">
-    <div id="titulo">✨ Un viaje musical inspirado en La La Land ✨</div>
-    <div id="escena"></div>
-  </div>
+        // si ya hay estrellas, no duplicar
+        if (near.querySelector('.star')) return;
 
-  <!-- Capas de efectos intro (renombrado y oculto para evitar choques) -->
-  <div id="constellationsIntro" aria-hidden="true" style="display:none"></div>
-  <div id="dust" aria-hidden="true" style="display:none"></div>
-  <div id="halo" aria-hidden="true" style="display:none"></div>
+        function makeStars(container, count, sizeVar){
+          const frag = document.createDocumentFragment();
+          for (let i=0;i<count;i++){
+            const s = document.createElement('i');
+            s.className = 'star';
+            s.style.left = (Math.random()*100)+'%';
+            s.style.top  = (Math.random()*100)+'%';
+            s.style.setProperty('--s', sizeVar);
+            s.style.setProperty('--tw', (1.8 + Math.random()*2.2).toFixed(2) + 's');
+            s.style.opacity = (0.55 + Math.random()*0.35).toFixed(2);
+            frag.appendChild(s);
+          }
+          container.appendChild(frag);
+        }
 
-  <!-- Nebulosas (intro) -->
-  <div class="nebula blue pos-1"  aria-hidden="true" style="display:none"></div>
-  <div class="nebula pink pos-2"  aria-hidden="true" style="display:none"></div>
-  <div class="nebula gold pos-3"  aria-hidden="true" style="display:none"></div>
-
-  <!-- Velo global (intro) -->
-  <div id="veil" aria-hidden="true" style="display:none"></div>
-
-  <!-- Botón inicial (anti-bloqueo de autoplay) -->
-  <button id="playBtn" type="button" aria-label="Iniciar experiencia">
-    ▶ Iniciar
-  </button>
-
-  <!-- ====== SCRIPTS ====== -->
-
-  <!-- Desactivamos temporalmente la intro -->
-  <!-- <script src="JS/intro.js?v=3"></script> -->
-
-  <!-- Activamos el VIAJE -->
-  <script defer src="JS/viaje.js?v=1"></script>
-
-  <!-- Arranque directo del VIAJE (desde 1:01) al pulsar el botón -->
-  <script>
-    document.addEventListener('DOMContentLoaded', () => {
-      const audio = document.getElementById('musica');
-      const btn   = document.getElementById('playBtn');
-
-      btn.addEventListener('click', async () => {
-        try { audio.currentTime = 61; await audio.play(); } catch(e){}
-        window.Viaje && window.Viaje.start(); // activa body.phase--viaje y efectos
-      });
+        makeStars(far,  120, 'var(--vj-star-far)');
+        makeStars(mid,   90, 'var(--vj-star-mid)');
+        makeStars(near,  60, 'var(--vj-star-near)');
+      }, 0);
     });
-  </script>
+  });
+</script>
 
-  <!-- Fallback sin JS -->
-  <noscript>
-    <div style="position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:#000;color:#fff;font-family:sans-serif;text-align:center;padding:24px;">
-      Esta experiencia requiere JavaScript. Por favor, habilítalo para continuar.
-    </div>
-  </noscript>
-</body>
-</html>
+
 
 
 
