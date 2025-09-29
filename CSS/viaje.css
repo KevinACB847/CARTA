@@ -1,0 +1,112 @@
+/* ===========================
+   VIAJE MÁGICO — CSS
+   Activo solo cuando el <body> tenga .phase--viaje
+   =========================== */
+
+body.phase--viaje{
+  /* Paleta y fondo */
+  --vj-bg-1: #05060b;
+  --vj-bg-2: #0a0e1a;
+
+  /* Brillo / saturación (el JS los subirá levemente) */
+  --vj-bright: 1.00;     /* 1.00 → 1.06 hacia el final */
+  --vj-sat:    1.00;     /* 1.00 → 1.06 */
+
+  /* Velocidad global de twinkle/animaciones de estrellas */
+  --vj-speed: 1;         /* 1.00 → ~1.18 */
+
+  /* Profundidad parallax */
+  --vj-depth-far:   7px;
+  --vj-depth-mid:  12px;
+  --vj-depth-near: 18px;
+
+  /* Tamaños de estrellas */
+  --vj-star-far:  1.1px;
+  --vj-star-mid:  1.6px;
+  --vj-star-near: 2.2px;
+
+  /* Textos y acentos */
+  --vj-whisper: #e8ecff;
+  --vj-whisper-shadow: 0 0 12px rgba(140,170,255,.35);
+  --vj-accent:  #ffdca8;
+
+  /* Zoom global “respirando” */
+  --vj-zoom: 1.00;       /* 1.00 → 1.045 */
+
+  background: radial-gradient(1200px 800px at 50% 60%, var(--vj-bg-2), var(--vj-bg-1) 65%);
+  filter: brightness(var(--vj-bright)) saturate(var(--vj-sat));
+  transform: scale(var(--vj-zoom));
+  transition: filter .6s ease, background-color .6s ease, transform .6s ease;
+}
+
+/* Sky y capas (no interfieren con la intro si no hay .phase--viaje) */
+body.phase--viaje #sky{ position:fixed; inset:0; pointer-events:none; will-change: transform, filter; }
+body.phase--viaje .layer{ position:absolute; inset:0; }
+body.phase--viaje .star{
+  will-change: opacity, transform;
+  animation-duration: calc(var(--tw, 2.8s) / var(--vj-speed));
+}
+
+/* Constelaciones (canvas) */
+body.phase--viaje #constellations{
+  position:absolute; inset:0; mix-blend-mode: screen; opacity:.85; pointer-events:none;
+}
+
+/* Susurros */
+body.phase--viaje #whispers{ position:absolute; inset:0; pointer-events:none; }
+body.phase--viaje .whisper{
+  position:absolute;
+  font-size: clamp(14px, 2.4vw, 28px);
+  line-height: 1.15;
+  letter-spacing: .5px;
+  color: var(--vj-whisper);
+  text-shadow: var(--vj-whisper-shadow);
+  opacity: 0;
+  animation: vj-whisper 3.6s ease forwards;
+}
+@keyframes vj-whisper{
+  0%   { opacity:0; transform: translateY(6px) scale(.98); filter: blur(2px);}
+  10%  { opacity:.92; transform: translateY(0) scale(1);    filter: blur(0);}
+  85%  { opacity:.92; }
+  100% { opacity:0; transform: translateY(-8px) scale(.99); filter: blur(1px);}
+}
+
+/* Chispas (tap/click) */
+body.phase--viaje #sparkles{ position:fixed; inset:0; pointer-events:none; }
+body.phase--viaje .sparkle{
+  position:absolute; width:10px; height:10px; border-radius:50%;
+  background: radial-gradient(circle, #fff, rgba(255,255,255,.4) 60%, transparent 70%);
+  box-shadow: 0 0 16px rgba(255,255,255,.65);
+  transform: translate(-50%,-50%) scale(.6);
+  opacity:.9; animation: vj-spark .85s ease-out forwards;
+}
+@keyframes vj-spark{ to{ transform: translate(-50%,-50%) scale(1.8); opacity:0; } }
+
+/* Micro destello de preparación (lo inyectará el JS) */
+body.phase--viaje .vj-flash{
+  position: fixed; inset:0; pointer-events:none;
+  background: radial-gradient(circle at 50% 50%, rgba(255,255,255,.16), rgba(255,255,255,0) 60%);
+  animation: vj-flash .1s ease-out forwards;
+}
+@keyframes vj-flash{ from{opacity:.9} to{opacity:0} }
+
+/* Rampas de brillo/saturación */
+body.phase--viaje.body-ramp-1{ filter: brightness(1.04) saturate(1.04); }
+body.phase--viaje.body-ramp-2{ filter: brightness(1.06) saturate(1.06); }
+
+/* Blink conjunto de constelaciones */
+body.phase--viaje .vj-blink{ animation: vj-blink .5s ease-in-out; }
+@keyframes vj-blink{ 0%{opacity:.85} 50%{opacity:.3} 100%{opacity:.85} }
+
+/* Estado preclímax (últimos ~5s del viaje) */
+body.phase--viaje.vj-preclimax{
+  --vj-bright: 1.06;
+  --vj-zoom:   1.045;
+}
+
+/* Salvaguarda: sin .phase--viaje, todo lo del viaje queda oculto */
+body:not(.phase--viaje) #constellations,
+body:not(.phase--viaje) #whispers,
+body:not(.phase--viaje) #sparkles{
+  display: none !important;
+}
