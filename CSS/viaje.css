@@ -1,134 +1,391 @@
-/* ===========================
-   VIAJE — Estilos autónomos (más movimiento)
-   =========================== */
+/* ===========================================================
+   VIAJE — La La Land (solo CSS)
+   Autor: tú
+   Propósito: base visual del “viaje” (1:01–2:25)
+   -----------------------------------------------------------
+   Filosofía:
+   - Mucho “movimiento de base” (fondo que respira) sin depender del mouse.
+   - Capas con profundidad real (parallax + drift) y atmósfera (glows).
+   - Pulsos visibles: destellos breves, chispas, susurros legibles.
+   - Estados globales controlados por clases en <body> (v-active, v-ramp-1, v-preclimax).
+   NOTA: Las líneas de constelaciones y las fugaces se dibujan en <canvas> por JS.
+         Este CSS aporta colorimetría, blending y tokens (variables) que dan look de “cine”.
+   =========================================================== */
+
+
+/* -----------------------------------------------------------
+   0) TOKENS GLOBALES (personaliza aquí el look)
+   ----------------------------------------------------------- */
 :root{
-  --v-bg-1:#05060b; --v-bg-2:#0a0e1a;
+  /* Paleta de fondo (azul nocturno con leve gradiente) */
+  --v-bg-1: #05060b;    /* negro azulado profundo */
+  --v-bg-2: #0a0e1a;    /* azul noche */
 
-  /* Estado global */
-  --v-bright:1;      /* 1 → 1.06 */
-  --v-sat:1;         /* 1 → 1.06 */
-  --v-zoom:1;        /* 1 → 1.045 */
-  --v-roll:0deg;     /* -0.5deg → 0.5deg */
+  /* Estado “vivo” global, modulado por JS: brillo/zoom/rotación */
+  --v-bright: 1;        /* 1 → 1.06      | brillo general */
+  --v-sat:    1;        /* 1 → 1.06      | saturación general */
+  --v-zoom:   1;        /* 1 → 1.045     | zoom de cámara */
+  --v-roll:   0deg;     /* -0.45deg → +0.45deg | leve “roll” cinematográfico */
 
-  /* Parallax / drift */
-  --v-depth-far:7;   /* px */
-  --v-depth-mid:12;
-  --v-depth-near:18;
+  /* Parallax (profundidad por capa) — el JS desplaza estas capas usando estos “px” */
+  --v-depth-far:  7;    /* px */
+  --v-depth-mid: 12;
+  --v-depth-near: 18;
 
-  /* amplitud del drift por capa (más grandes para que se note) */
-  --v-drift-far:  8.0;
-  --v-drift-mid: 14.0;
-  --v-drift-near:22.0;
+  /* Drift (flotación propia por capa) — amplitud del vaivén sinusoidal en px */
+  --v-drift-far:   8.0;
+  --v-drift-mid:  14.0;
+  --v-drift-near: 22.0;
 
-  /* Field de estrellas */
+  /* Campo de estrellas (tamaños base) */
   --v-star-far:  1.2px;
   --v-star-mid:  1.8px;
   --v-star-near: 2.6px;
-  --v-speed:1;      /* multiplicador twinkle */
 
-  /* Textos */
-  --v-whisper:#e8ecff;
-  --v-whisper-shadow:0 0 12px rgba(140,170,255,.35);
+  /* Velocidad relativa del “twinkle” (el JS puede subirla en escalones) */
+  --v-speed: 1;         /* 1.00 → 1.18 */
+
+  /* Tono de textos “susurros” */
+  --v-whisper:        #e8ecff;
+  --v-whisper-shadow: 0 0 12px rgba(140,170,255,.35);
+
+  /* Color del trazo de constelaciones (canvas) — referencia para el JS si quiere leerlo */
+  --v-const-stroke:   rgba(200,210,255,0.78);
+
+  /* Intensidad del flash central */
+  --v-flash-core: rgba(255,255,255,.18);
 }
 
-*{box-sizing:border-box}
-html,body{height:100%}
+
+/* -----------------------------------------------------------
+   1) BASE / RESETEO LIGERO
+   ----------------------------------------------------------- */
+*{ box-sizing: border-box; }
+html, body{ height:100%; }
 body{
   margin:0;
+  color:#fff;
+  overflow:hidden;
+  font-family: ui-sans-serif, system-ui, "Segoe UI", Roboto, Arial, sans-serif;
+
+  /* FONDO con ligera viñeta por gradiente */
   background: radial-gradient(1200px 800px at 50% 60%, var(--v-bg-2), var(--v-bg-1) 65%);
-  color:#fff; overflow:hidden;
-  font-family:ui-sans-serif, system-ui, "Segoe UI", Roboto, Arial, sans-serif;
-  filter:brightness(var(--v-bright)) saturate(var(--v-sat));
-  transform:translateZ(0) scale(var(--v-zoom)) rotate(var(--v-roll));
-  transition:filter .35s ease, transform .35s ease;
+
+  /* ESTADO GLOBAL “vivo” */
+  filter: brightness(var(--v-bright)) saturate(var(--v-sat));
+  transform: translateZ(0) scale(var(--v-zoom)) rotate(var(--v-roll));
+  transition: filter .35s ease, transform .35s ease;
 }
 
-/* ===== Sky / capas ===== */
-#v-sky{position:fixed; inset:0; pointer-events:none;}
-.v-layer{position:absolute; inset:0; filter:drop-shadow(0 0 2px rgba(255,255,255,.05));}
+/* Viñeteado adicional sin tocar el HTML: suave y cinematográfico */
+body::after{
+  content:"";
+  position:fixed; inset:0; pointer-events:none; z-index:0;
+  background:
+    radial-gradient(120vmax 80vmax at 50% 60%, rgba(0,0,0,0) 60%, rgba(0,0,0,.18) 100%),
+    radial-gradient(80vmax 60vmax at 20% 30%, rgba(0,0,0,.08), rgba(0,0,0,0) 52%),
+    radial-gradient(80vmax 60vmax at 80% 30%, rgba(0,0,0,.08), rgba(0,0,0,0) 52%);
+}
 
+
+/* -----------------------------------------------------------
+   2) CAPAS DE ESCENA
+   ----------------------------------------------------------- */
+/* “Cielo” que contiene TODO lo visual (excepto el botón) */
+#v-sky{
+  position: fixed;
+  inset: 0;
+  pointer-events: none; /* Los clics pasan al documento; los capta el JS si quiere */
+  z-index: 1;          /* Debajo del UI, encima del pseudo-viñeteado del body */
+}
+
+/* Capas por profundidad; el JS aplica transform aquí con parallax + drift */
+.v-layer{
+  position:absolute; inset:0;
+  filter: drop-shadow(0 0 2px rgba(255,255,255,.05)); /* leve “aire” alrededor de estrellas */
+}
+
+/* Z-indices conceptuales por si los necesitas (no imprescindibles) */
+.v-far  { z-index:1; }
+.v-mid  { z-index:2; }
+.v-near { z-index:3; }
+
+/* ---------- Estrellas (DOM, no canvas) ---------- */
 .v-star{
   position:absolute;
-  width:var(--s,2px); height:var(--s,2px);
-  background:radial-gradient(circle,#fff,rgba(255,255,255,.65) 60%,transparent 70%);
-  border-radius:50%;
-  opacity:var(--o,.85);
-  animation:v-twinkle calc(var(--tw,2.4s)/var(--v-speed)) linear infinite;
-}
-@keyframes v-twinkle{
-  0%,100%{ opacity:var(--tw-min,.45); transform:scale(1) }
-  50%    { opacity:var(--tw-max,.95); transform:scale(1.08) }
+  width: var(--s, 2px);
+  height: var(--s, 2px);
+  border-radius: 50%;
+
+  /* brillo con degradado — se ve como un puntito con halo */
+  background: radial-gradient(circle,
+                #fff 0%,
+                rgba(255,255,255,.75) 60%,
+                rgba(255,255,255,0) 70%);
+
+  /* variaciones por estrella (definidas inline por JS via variables) */
+  opacity: var(--o, .85);
+
+  /* parpadeo (twinkle) — acelerable globalmente con --v-speed */
+  animation: v-twinkle calc(var(--tw, 2.4s) / var(--v-speed)) linear infinite;
+
+  /* micro-glow extra en hover/boost (si se añade .v-boost-stars en body) */
+  will-change: transform, opacity;
 }
 
-/* Nebulosas / glows */
-#v-glows{position:absolute; inset:0; pointer-events:none; mix-blend-mode:screen}
+/* Halo adicional sutil (da “cuerpo” a la estrella pequeña) */
+.v-star::after{
+  content:"";
+  position:absolute; inset:-4px;
+  border-radius:inherit;
+  background: radial-gradient(circle, rgba(255,255,255,.45), rgba(255,255,255,0) 70%);
+  opacity:.18;
+  filter: blur(2px);
+  pointer-events:none;
+}
+
+@keyframes v-twinkle{
+  0%,100%{ opacity: var(--tw-min, .45); transform: scale(1) }
+  50%    { opacity: var(--tw-max, .95); transform: scale(1.08) }
+}
+
+/* Si quieres “picar” más nervio cuando el usuario mueve fuerte el mouse,
+   añade la clase .v-boost-stars al <body> desde JS durante ~700ms */
+body.v-boost-stars .v-star{
+  animation-duration: calc( (var(--tw, 2.4s) / var(--v-speed)) * .75 );
+}
+
+
+/* ---------- Nebulosas / glows (atmósfera) ---------- */
+#v-glows{
+  position:absolute; inset:0;
+  pointer-events:none;
+  mix-blend-mode: screen; /* suma luz sin quemar negros */
+  z-index: 4;
+}
+
+/* Tres “soles” grandes, con textura suave y blur */
 .v-glow{
-  position:absolute; width:42vmax; height:42vmax; border-radius:50%;
+  position:absolute; left:50%; top:50%;
+  width: 42vmax; height: 42vmax; border-radius:50%;
+  transform: translate(-50%, -50%) scale(1);
+  filter: blur(18px);
+  opacity: .42;
+
+  /* Dos radiales cruzados (azul frío y dorado cálido) para “piel” de nebulosa */
   background:
     radial-gradient(circle at 45% 55%, rgba(110,140,255,.16), rgba(30,20,60,0) 70%),
-    radial-gradient(circle at 55% 45%, rgba(250,210,150,.10), rgba(0,0,0,0) 70%);
-  filter: blur(18px);
-  opacity:.42;
-  transform: translate(-50%,-50%) scale(1);
+    radial-gradient(circle at 55% 45%, rgba(250,210,150,.12), rgba(0,0,0,0) 70%);
 }
 
-/* Canvas constelaciones */
+/* Si quisieras variantes de color: */
+.v-glow--blue{
+  background:
+    radial-gradient(circle at 48% 58%, rgba(120,150,255,.18), rgba(30,30,80,0) 70%),
+    radial-gradient(circle at 55% 45%, rgba(200,220,255,.08), rgba(0,0,0,0) 70%);
+}
+.v-glow--pink{
+  background:
+    radial-gradient(circle at 48% 58%, rgba(255,130,190,.16), rgba(60,20,60,0) 70%),
+    radial-gradient(circle at 55% 45%, rgba(255,210,250,.10), rgba(0,0,0,0) 70%);
+}
+.v-glow--gold{
+  background:
+    radial-gradient(circle at 48% 58%, rgba(250,210,150,.18), rgba(80,50,0,0) 70%),
+    radial-gradient(circle at 55% 45%, rgba(255,245,210,.10), rgba(0,0,0,0) 70%);
+}
+
+
+/* ---------- Canvas de constelaciones (no dibuja CSS, pero sí su blending) ---------- */
 #v-constellations{
-  position:absolute; inset:0; pointer-events:none; mix-blend-mode:screen; opacity:.9;
+  position:absolute; inset:0;
+  pointer-events:none;
+  mix-blend-mode: screen;  /* se integra con estrellas y glows */
+  opacity: .92;            /* más alto para que el trazo se lea bien */
+  z-index: 5;
 }
 
-/* Whispers */
-#v-whispers{position:absolute; inset:0; pointer-events:none;}
+/* “Blink” grupal antes del preclímax (el JS añade/quita esta clase) */
+#v-constellations.v-blink{
+  animation: v-blink .55s ease-in-out;
+}
+@keyframes v-blink{
+  0%{opacity:.92} 45%{opacity:.30} 100%{opacity:.92}
+}
+
+
+/* ---------- Susurros (texto corto, 1–2 palabras) ---------- */
+#v-whispers{
+  position:absolute; inset:0;
+  pointer-events:none;
+  z-index: 6;
+}
+
 .v-whisper{
-  position:absolute; opacity:0; color:var(--v-whisper); text-shadow:var(--v-whisper-shadow);
-  font-size:clamp(14px,2.4vw,28px); letter-spacing:.6px; line-height:1.15;
-  animation:v-whisper 3.6s ease forwards;
+  position:absolute;
+  color: var(--v-whisper);
+  text-shadow: var(--v-whisper-shadow);
+  font-size: clamp(14px, 2.4vw, 28px);
+  font-weight: 500;
+  letter-spacing: .6px;
+  line-height: 1.15;
+  opacity: 0;
+
+  /* animación de aparición/desaparición */
+  animation: v-whisper 3.6s ease forwards;
+  will-change: opacity, transform, filter;
 }
+
 @keyframes v-whisper{
-  0%{opacity:0; transform:translateY(8px) scale(.98); filter:blur(2px)}
-  12%{opacity:.95; transform:translateY(0) scale(1); filter:blur(0)}
-  85%{opacity:.92}
-  100%{opacity:0; transform:translateY(-8px) scale(.99); filter:blur(1px)}
+  0%   { opacity: 0;   transform: translateY(8px) scale(.98); filter: blur(2px); }
+  12%  { opacity: .96; transform: translateY(0)   scale(1);   filter: blur(0); }
+  85%  { opacity: .92; }
+  100% { opacity: 0;   transform: translateY(-8px) scale(.99); filter: blur(1px); }
 }
 
-/* Sparkles (tap/click) */
-#v-sparkles{position:fixed; inset:0; pointer-events:none;}
+
+/* ---------- Chispas en click/tap (decorativo, no interrumpe nada) ---------- */
+#v-sparkles{
+  position:fixed; inset:0;
+  pointer-events:none;
+  z-index: 7;
+}
+
 .v-sparkle{
-  position:absolute; width:11px; height:11px; border-radius:50%;
-  background:radial-gradient(circle,#fff,rgba(255,255,255,.4) 60%,transparent 70%);
-  box-shadow:0 0 16px rgba(255,255,255,.65);
-  transform:translate(-50%,-50%) scale(.6);
-  opacity:.95; animation:v-spark .9s ease-out forwards;
-}
-@keyframes v-spark{to{transform:translate(-50%,-50%) scale(1.9); opacity:0}}
+  position:absolute;
+  width: 11px; height: 11px; border-radius:50%;
+  transform: translate(-50%,-50%) scale(.6);
+  opacity: .95;
 
-/* Micro-flash */
+  background: radial-gradient(circle, #fff, rgba(255,255,255,.42) 60%, transparent 72%);
+  box-shadow: 0 0 16px rgba(255,255,255,.65);
+
+  animation: v-spark .9s ease-out forwards;
+}
+
+@keyframes v-spark{
+  0%  { transform: translate(-50%,-50%) scale(.6); opacity:.95; filter: blur(0); }
+  60% { transform: translate(-50%,-50%) scale(1.6); opacity:.55; filter: blur(.3px); }
+  100%{ transform: translate(-50%,-50%) scale(1.9); opacity:0;   filter: blur(1px); }
+}
+
+
+/* ---------- Micro-flash (marca musical breve) ---------- */
 .v-flash{
-  position:fixed; inset:0; pointer-events:none;
-  background:radial-gradient(circle at 50% 50%, rgba(255,255,255,.18), rgba(255,255,255,0) 60%);
-  animation:v-flash .13s ease-out forwards;
+  position: fixed; inset: 0;
+  pointer-events: none;
+  z-index: 8;
+  background:
+    radial-gradient(circle at 50% 50%, var(--v-flash-core), rgba(255,255,255,0) 60%);
+  animation: v-flash .13s ease-out forwards;
 }
-@keyframes v-flash{from{opacity:.95} to{opacity:0}}
+@keyframes v-flash{
+  from{ opacity:.95; }
+  to  { opacity:0;    }
+}
 
-/* UI */
-#v-ui{position:fixed; left:16px; bottom:16px; z-index:10; pointer-events:auto}
+
+/* -----------------------------------------------------------
+   3) UI (solo el botón de iniciar, discreto)
+   ----------------------------------------------------------- */
+#v-ui{
+  position: fixed;
+  left: 16px; bottom: 16px;
+  z-index: 10;
+  pointer-events: auto; /* El resto de capas no capturan clics */
+}
+
 #v-play{
-  background:#101625; color:#fff; border:1px solid #26324d; padding:10px 16px; border-radius:999px;
-  cursor:pointer; font-weight:600;
+  appearance: none;
+  background: #101625;
+  color: #fff;
+  border: 1px solid #26324d;
+  padding: 10px 16px;
+  border-radius: 999px;
+  cursor: pointer;
+  font-weight: 600;
+  line-height: 1;
+  transition: transform .15s ease, box-shadow .15s ease, background .2s ease;
+}
+#v-play:hover{
+  transform: translateY(-1px);
+  box-shadow: 0 6px 18px rgba(16,22,37,.35);
+  background: #0c1324;
+}
+#v-play:active{
+  transform: translateY(0);
+  box-shadow: 0 4px 12px rgba(16,22,37,.25) inset;
 }
 
-/* Estados */
-body.v-ramp-1{ filter:brightness(1.045) saturate(1.045); }
-body.v-preclimax{ --v-bright:1.06; --v-zoom:1.045; }
 
-/* Seguridad */
+/* -----------------------------------------------------------
+   4) ESTADOS DE FASE (añadidos por JS al <body>)
+   ----------------------------------------------------------- */
+
+/* El viaje está activo (muestra overlays aunque no se mueva el mouse) */
+body.v-active #v-constellations,
+body.v-active #v-whispers,
+body.v-active #v-sparkles{
+  display: block;
+}
+
+/* Rampas de brillo/saturación (borde del clímax) */
+body.v-ramp-1{
+  filter: brightness(1.045) saturate(1.045);
+}
+
+/* Preclímax (últimos ~5s). El JS puede activar esta clase en 2:20. */
+body.v-preclimax{
+  --v-bright: 1.06;
+  --v-zoom:   1.045;
+  --v-roll:   0deg;      /* estabiliza el roll justo antes del blackout */
+}
+
+/* Boost corto de nervio (por movimiento rápido del mouse) */
+body.v-boost-stars .v-star{
+  /* ya arriba acortamos la duración; aquí añadimos un halo un poco mayor */
+}
+body.v-boost{
+  filter: brightness(1.05) saturate(1.06);
+}
+
+
+/* -----------------------------------------------------------
+   5) RESPONSIVE & ACCESIBILIDAD
+   ----------------------------------------------------------- */
+
+/* Móviles: glows más pequeños y textos 1 punto menos */
+@media (max-width: 480px){
+  .v-glow{ width: 52vmin; height: 52vmin; filter: blur(16px); opacity:.40; }
+  .v-whisper{ font-size: clamp(13px, 3.6vw, 24px); }
+  :root{
+    --v-depth-far:  6;
+    --v-depth-mid: 10;
+    --v-depth-near: 15;
+    --v-drift-far:  6.5;
+    --v-drift-mid: 11.0;
+    --v-drift-near:18.0;
+  }
+}
+
+/* Reduce motion: respetar usuarios que prefieren menos animación */
+@media (prefers-reduced-motion: reduce){
+  *{ animation-duration: .001ms !important; animation-iteration-count: 1 !important; transition-duration: .001ms !important; }
+  body{ transform: none !important; filter: brightness(1) saturate(1) !important; }
+  .v-star{ opacity: .85 !important; }
+}
+
+/* Alto contraste (opcional): si habilitas un data-atributo en <html> o <body> */
+body[data-contrast="high"]{
+  --v-flash-core: rgba(255,255,255,.24);
+  --v-whisper-shadow: 0 0 14px rgba(200,220,255,.50);
+}
+
+/* Seguridad: si por algo NO está el viaje activo, oculta overlays para que
+   no aparezcan elementos sueltos durante la carga */
 body:not(.v-active) #v-constellations,
 body:not(.v-active) #v-whispers,
-body:not(.v-active) #v-sparkles{ display:none }
-
-
-/* Seguridad: si no está activo, oculta overlays */
-body:not(.v-active) #v-constellations,
-body:not(.v-active) #v-whispers,
-body:not(.v-active) #v-sparkles{ display:none }
+body:not(.v-active) #v-sparkles{
+  display: none !important;
+}
 
