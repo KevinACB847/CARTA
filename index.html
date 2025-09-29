@@ -2,53 +2,30 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8" />
-  <meta
-    name="viewport"
-    content="width=device-width, initial-scale=1.0, maximum-scale=1.0"
-  />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
   <title>Viaje — Planetarium (1:01–2:25)</title>
-
-  <!-- Anti-flash mínimo antes de cargar el CSS -->
-  <style>
-    html,body{height:100%}
-    body{margin:0;background:#0b0f1d;color:#f2efe9;overflow:hidden}
-  </style>
-
-  <!-- Estilos del viaje -->
-  <link rel="stylesheet" href="CSS/viaje.css?v=7" />
+  <style>html,body{height:100%}body{margin:0;background:#0b0f1d;color:#f2efe9;overflow:hidden}</style>
+  <link rel="stylesheet" href="CSS/viaje.css?v=8" />
   <meta name="theme-color" content="#0b0f1d" />
 </head>
 <body>
-
-  <!-- Audio (el JS fuerza el inicio en 1:01) -->
   <audio id="audio" src="music/planetarium.mp3" preload="auto"></audio>
 
-  <!-- Escena principal del viaje -->
   <div class="stage v-vignette" id="stage" aria-label="Viaje Planetarium">
-    <!-- Fondo dibujado por JS: degradado, polvo, bokeh, nebulosas -->
     <canvas id="bgCanvas"></canvas>
-
-    <!-- Foco dorado elíptico -->
     <div class="foco-dorado"></div>
-
-    <!-- FX: rayos curvos, notas-luz, fugaces -->
     <canvas id="fxCanvas"></canvas>
 
-    <!-- Overlays cinematográficos -->
     <div class="grain-overlay"></div>
     <div class="flash" id="v-flash"></div>
     <div class="v-whisper" id="v-whisper" aria-live="polite"></div>
 
-    <!-- UI mínima: botón iniciar (obliga interacción para audio) -->
     <div class="ui">
-      <button class="btn-start" id="btnStart" type="button" aria-label="Iniciar viaje">
-        Iniciar
-      </button>
+      <button class="btn-start" id="btnStart" type="button" aria-label="Iniciar viaje">Iniciar</button>
     </div>
   </div>
 
-  <!-- Motor del viaje -->
-  <script src="JS/viaje.js?v=7"></script>
+  <script src="JS/viaje.js?v=8"></script>
 
   <noscript>
     <div style="position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:#000;color:#fff;padding:24px;text-align:center;">
