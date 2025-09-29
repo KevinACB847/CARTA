@@ -1,30 +1,30 @@
 /* ===========================
-   VIAJE — Estilos autónomos (dinámicos)
+   VIAJE — Estilos autónomos (más movimiento)
    =========================== */
 :root{
-  /* Fondo y tono */
   --v-bg-1:#05060b; --v-bg-2:#0a0e1a;
 
-  /* Estado global que modula el “aliento” visual */
-  --v-bright:1;     /* 1 → 1.06 */
-  --v-sat:1;        /* 1 → 1.06 */
-  --v-zoom:1;       /* 1 → 1.045 */
+  /* Estado global */
+  --v-bright:1;      /* 1 → 1.06 */
+  --v-sat:1;         /* 1 → 1.06 */
+  --v-zoom:1;        /* 1 → 1.045 */
+  --v-roll:0deg;     /* -0.5deg → 0.5deg */
 
-  /* Profundidad/parallax (JS los usa como multiplicadores) */
-  --v-depth-far:7;  /* px */
+  /* Parallax / drift */
+  --v-depth-far:7;   /* px */
   --v-depth-mid:12;
   --v-depth-near:18;
 
-  /* Drift (cámara flotando) – amplitud en px por capa */
-  --v-drift-far:  2.0;
-  --v-drift-mid:  4.0;
-  --v-drift-near: 7.0;
+  /* amplitud del drift por capa (más grandes para que se note) */
+  --v-drift-far:  8.0;
+  --v-drift-mid: 14.0;
+  --v-drift-near:22.0;
 
   /* Field de estrellas */
-  --v-star-far:  1.1px;
-  --v-star-mid:  1.6px;
-  --v-star-near: 2.2px;
-  --v-speed:1;  /* multiplicador de twinkle */
+  --v-star-far:  1.2px;
+  --v-star-mid:  1.8px;
+  --v-star-near: 2.6px;
+  --v-speed:1;      /* multiplicador twinkle */
 
   /* Textos */
   --v-whisper:#e8ecff;
@@ -39,8 +39,8 @@ body{
   color:#fff; overflow:hidden;
   font-family:ui-sans-serif, system-ui, "Segoe UI", Roboto, Arial, sans-serif;
   filter:brightness(var(--v-bright)) saturate(var(--v-sat));
-  transform:scale(var(--v-zoom));
-  transition:filter .4s ease, transform .4s ease;
+  transform:translateZ(0) scale(var(--v-zoom)) rotate(var(--v-roll));
+  transition:filter .35s ease, transform .35s ease;
 }
 
 /* ===== Sky / capas ===== */
@@ -52,29 +52,41 @@ body{
   width:var(--s,2px); height:var(--s,2px);
   background:radial-gradient(circle,#fff,rgba(255,255,255,.65) 60%,transparent 70%);
   border-radius:50%;
-  opacity:var(--o,.8);
-  animation:v-twinkle calc(var(--tw,2.8s)/var(--v-speed)) linear infinite;
+  opacity:var(--o,.85);
+  animation:v-twinkle calc(var(--tw,2.4s)/var(--v-speed)) linear infinite;
 }
 @keyframes v-twinkle{
-  0%,100%{ opacity:var(--tw-min,.5); transform:scale(1) }
-  50%    { opacity:var(--tw-max,.9); transform:scale(1.06) }
+  0%,100%{ opacity:var(--tw-min,.45); transform:scale(1) }
+  50%    { opacity:var(--tw-max,.95); transform:scale(1.08) }
+}
+
+/* Nebulosas / glows */
+#v-glows{position:absolute; inset:0; pointer-events:none; mix-blend-mode:screen}
+.v-glow{
+  position:absolute; width:42vmax; height:42vmax; border-radius:50%;
+  background:
+    radial-gradient(circle at 45% 55%, rgba(110,140,255,.16), rgba(30,20,60,0) 70%),
+    radial-gradient(circle at 55% 45%, rgba(250,210,150,.10), rgba(0,0,0,0) 70%);
+  filter: blur(18px);
+  opacity:.42;
+  transform: translate(-50%,-50%) scale(1);
 }
 
 /* Canvas constelaciones */
 #v-constellations{
-  position:absolute; inset:0; pointer-events:none; mix-blend-mode:screen; opacity:.88;
+  position:absolute; inset:0; pointer-events:none; mix-blend-mode:screen; opacity:.9;
 }
 
 /* Whispers */
 #v-whispers{position:absolute; inset:0; pointer-events:none;}
 .v-whisper{
   position:absolute; opacity:0; color:var(--v-whisper); text-shadow:var(--v-whisper-shadow);
-  font-size:clamp(14px,2.4vw,28px); letter-spacing:.5px; line-height:1.15;
+  font-size:clamp(14px,2.4vw,28px); letter-spacing:.6px; line-height:1.15;
   animation:v-whisper 3.6s ease forwards;
 }
 @keyframes v-whisper{
-  0%{opacity:0; transform:translateY(6px) scale(.98); filter:blur(2px)}
-  10%{opacity:.92; transform:translateY(0) scale(1); filter:blur(0)}
+  0%{opacity:0; transform:translateY(8px) scale(.98); filter:blur(2px)}
+  12%{opacity:.95; transform:translateY(0) scale(1); filter:blur(0)}
   85%{opacity:.92}
   100%{opacity:0; transform:translateY(-8px) scale(.99); filter:blur(1px)}
 }
@@ -82,19 +94,19 @@ body{
 /* Sparkles (tap/click) */
 #v-sparkles{position:fixed; inset:0; pointer-events:none;}
 .v-sparkle{
-  position:absolute; width:10px; height:10px; border-radius:50%;
+  position:absolute; width:11px; height:11px; border-radius:50%;
   background:radial-gradient(circle,#fff,rgba(255,255,255,.4) 60%,transparent 70%);
   box-shadow:0 0 16px rgba(255,255,255,.65);
   transform:translate(-50%,-50%) scale(.6);
-  opacity:.9; animation:v-spark .85s ease-out forwards;
+  opacity:.95; animation:v-spark .9s ease-out forwards;
 }
-@keyframes v-spark{to{transform:translate(-50%,-50%) scale(1.8); opacity:0}}
+@keyframes v-spark{to{transform:translate(-50%,-50%) scale(1.9); opacity:0}}
 
 /* Micro-flash */
 .v-flash{
   position:fixed; inset:0; pointer-events:none;
-  background:radial-gradient(circle at 50% 50%, rgba(255,255,255,.16), rgba(255,255,255,0) 60%);
-  animation:v-flash .12s ease-out forwards;
+  background:radial-gradient(circle at 50% 50%, rgba(255,255,255,.18), rgba(255,255,255,0) 60%);
+  animation:v-flash .13s ease-out forwards;
 }
 @keyframes v-flash{from{opacity:.95} to{opacity:0}}
 
@@ -106,8 +118,14 @@ body{
 }
 
 /* Estados */
-body.v-ramp-1{ filter:brightness(1.04) saturate(1.04); }
+body.v-ramp-1{ filter:brightness(1.045) saturate(1.045); }
 body.v-preclimax{ --v-bright:1.06; --v-zoom:1.045; }
+
+/* Seguridad */
+body:not(.v-active) #v-constellations,
+body:not(.v-active) #v-whispers,
+body:not(.v-active) #v-sparkles{ display:none }
+
 
 /* Seguridad: si no está activo, oculta overlays */
 body:not(.v-active) #v-constellations,
