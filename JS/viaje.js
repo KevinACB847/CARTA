@@ -1,14 +1,12 @@
 /* ===========================
-   VIAJE — JS autónomo (1:01–2:25)
+   VIAJE — JS autónomo (más dinámico)
    =========================== */
 (() => {
   const START = 61;   // 1:01
   const END   = 145;  // 2:25
 
-  // DOM refs
+  // DOM
   const audio   = document.getElementById('v-audio');
-  const root    = document.getElementById('v-root');
-  const sky     = document.getElementById('v-sky');
   const farL    = document.getElementById('v-layer-far');
   const midL    = document.getElementById('v-layer-mid');
   const nearL   = document.getElementById('v-layer-near');
@@ -18,18 +16,21 @@
   const sparklesBox = document.getElementById('v-sparkles');
   const playBtn = document.getElementById('v-play');
 
-  // state
+  // Estado
   let W=0, H=0, dpr=1;
-  let rafId=null, last=0, active=false;
+  let rafId=null, lastRAF=0, active=false;
   let constellations=[], meteors=[];
   let drawConst=false, speedMult=1;
-  let cues=[];
+  let cues=[], lastPulseT=0;
+
+  // Movimiento base (parallax + drift)
+  let pointerX=0, pointerY=0;    // -0.5..0.5
+  let t0 = performance.now();
 
   const WHISPERS = ["pequeño cosmos","tú y yo","promesa","destino","una señal","más cerca","late","sueño"];
-
-  // ------------ utils ------------
   const rand=(a,b)=> a + Math.random()*(b-a);
 
+  // ------- Init helpers -------
   function resize(){
     dpr = Math.max(1, devicePixelRatio || 1);
     W = cvs.width  = Math.floor(innerWidth * dpr);
@@ -39,7 +40,6 @@
     ctx.setTransform(dpr,0,0,dpr,0,0);
   }
 
-  // ------------ starfield ------------
   function makeStars(container, count, sizeVar){
     const frag = document.createDocumentFragment();
     for(let i=0;i<count;i++){
@@ -58,29 +58,50 @@
   }
 
   function buildSky(){
-    makeStars(farL,  120, 'var(--v-star-far)');
-    makeStars(midL,   90, 'var(--v-star-mid)');
-    makeStars(nearL,  60, 'var(--v-star-near)');
+    makeStars(farL,  160, 'var(--v-star-far)');
+    makeStars(midL,  120, 'var(--v-star-mid)');
+    makeStars(nearL,  80, 'var(--v-star-near)');
   }
 
-  // ------------ parallax ------------
-  function setupParallax(){
+  // ------- Base motion: parallax + drift + breathing -------
+  function setupParallaxAndDrift(){
+    // parallax (puntero)
     function onMove(e){
       const p = e.touches ? e.touches[0] : e;
-      const nx = (p.clientX/innerWidth)  - .5;
-      const ny = (p.clientY/innerHeight) - .5;
-      const df = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--v-depth-far'))  || 7;
-      const dm = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--v-depth-mid'))  || 12;
-      const dn = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--v-depth-near')) || 18;
-      farL.style.transform  = `translate3d(${nx*df}px, ${ny*df}px,0)`;
-      midL.style.transform  = `translate3d(${nx*dm}px, ${ny*dm}px,0)`;
-      nearL.style.transform = `translate3d(${nx*dn}px, ${ny*dn}px,0)`;
+      pointerX = (p.clientX/innerWidth)  - .5;
+      pointerY = (p.clientY/innerHeight) - .5;
     }
     addEventListener('mousemove', onMove, {passive:true});
     addEventListener('touchmove', onMove, {passive:true});
   }
 
-  // ------------ whispers ------------
+  function applyLayerTransforms(timeMs){
+    // Drift sinusoidal independiente por capa (no depende del puntero)
+    const t = (timeMs - t0) / 1000;
+    const df = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--v-depth-far'))  || 7;
+    const dm = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--v-depth-mid'))  || 12;
+    const dn = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--v-depth-near')) || 18;
+
+    const af = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--v-drift-far'))  || 2;
+    const am = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--v-drift-mid'))  || 4;
+    const an = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--v-drift-near')) || 7;
+
+    const fx = Math.sin(t/9.0)*af,  fy = Math.cos(t/11.0)*af;
+    const mx = Math.sin(t/7.2)*am,  my = Math.cos(t/8.6)*am;
+    const nx = Math.sin(t/5.5)*an,  ny = Math.cos(t/6.3)*an;
+
+    farL.style.transform  = `translate3d(${pointerX*df + fx}px, ${pointerY*df + fy}px,0)`;
+    midL.style.transform  = `translate3d(${pointerX*dm + mx}px, ${pointerY*dm + my}px,0)`;
+    nearL.style.transform = `translate3d(${pointerX*dn + nx}px, ${pointerY*dn + ny}px,0)`;
+
+    // Breathing global (zoom + brillo) — muy suave
+    const breath = 0.01 + (Math.sin(t/6.0)+1)*0.005;          // 0.01..0.02
+    const bright = 1.00 + (Math.sin(t/7.0)+1)*0.02;           // 1.00..1.04
+    document.documentElement.style.setProperty('--v-zoom',   (1.00 + breath).toFixed(3));
+    document.documentElement.style.setProperty('--v-bright', bright.toFixed(3));
+  }
+
+  // ------- whispers / sparkles / flashes -------
   function spawnWhisper(text){
     const w = document.createElement('div');
     w.className='v-whisper';
@@ -91,15 +112,6 @@
     w.addEventListener('animationend', ()=> w.remove());
   }
 
-  // ------------ sparkles ------------
-  function setupSparkles(){
-    function onTap(e){
-      const p = e.touches ? e.touches[0] : e;
-      spawnSparkle(p.clientX, p.clientY);
-    }
-    addEventListener('click', onTap);
-    addEventListener('touchstart', onTap, {passive:true});
-  }
   function spawnSparkle(x,y){
     const sp = document.createElement('div');
     sp.className='v-sparkle';
@@ -114,15 +126,18 @@
     spawnSparkle(pad,innerHeight-pad);
     spawnSparkle(innerWidth-pad,innerHeight-pad);
   }
+  addEventListener('click', e=>{
+    const p=e.touches?e.touches[0]:e;
+    spawnSparkle(p.clientX,p.clientY);
+  }, {passive:true});
 
-  // ------------ flashes / ramps ------------
   function microFlash(){
     const el=document.createElement('div');
     el.className='v-flash'; document.body.appendChild(el);
     el.addEventListener('animationend', ()=> el.remove());
   }
 
-  // ------------ constellations ------------
+  // ------- constellations -------
   function buildConstellations(){
     const R = Math.min(innerWidth, innerHeight);
     const cfg = [
@@ -145,8 +160,8 @@
   function drawConstellations(dt){
     ctx.clearRect(0,0,innerWidth,innerHeight);
     ctx.save();
-    ctx.globalAlpha=.75; ctx.lineWidth=1.1; ctx.strokeStyle='rgba(200,210,255,0.7)';
-    const speed = .6; // px/ms
+    ctx.globalAlpha=.78; ctx.lineWidth=1.1; ctx.strokeStyle='rgba(200,210,255,0.72)';
+    const speed = .72; // px/ms (más rápido que antes)
     for(const c of constellations){
       c.progress = Math.min(c.progress + speed*dt, c.total);
       let acc=0;
@@ -163,19 +178,20 @@
     ctx.restore();
   }
 
-  // ------------ meteors ------------
+  // ------- meteors (mini-fugaces) -------
   function spawnMeteor(o={}){
     const side = Math.random()<.5 ? 'L' : 'R';
     const y = rand(innerHeight*.15, innerHeight*.85);
     const dir = side==='L'?1:-1;
-    const speed = o.speed || rand(420,620);
-    const ang   = o.angle || (dir>0? rand(-.4,-.2): rand(.2,.4));
+    const speed = o.speed || rand(480,700);
+    const ang   = o.angle || (dir>0? rand(-.38,-.18): rand(.18,.38));
     const vx=Math.cos(ang)*speed*dir, vy=Math.sin(ang)*speed;
     const x0= side==='L' ? -40 : innerWidth+40;
-    meteors.push({x:x0,y, vx,vy, life:.6, alpha:.9});
+    meteors.push({x:x0,y, vx,vy, life:.65, alpha:.95});
   }
-  function spawnCrossMeteors(){ spawnMeteor({angle:-.28,speed:560}); spawnMeteor({angle:.28,speed:560}); }
-  function spawnFanMeteors(){ for(let i=0;i<3;i++) spawnMeteor({angle:rand(-.35,-.18),speed:rand(460,620)}) }
+  function spawnCrossMeteors(){ spawnMeteor({angle:-.28,speed:620}); spawnMeteor({angle:.28,speed:620}); }
+  function spawnFanMeteors(){ for(let i=0;i<3;i++) spawnMeteor({angle:rand(-.36,-.18),speed:rand(520,700)}) }
+
   function drawMeteors(dt){
     const t=dt/1000;
     ctx.save(); ctx.globalCompositeOperation='lighter';
@@ -186,37 +202,36 @@
       m.x += m.vx*t; m.y += m.vy*t; m.life -= t; m.alpha = Math.max(0, m.life*1.2);
     }
     ctx.restore();
-    meteors = meteors.filter(m=> m.life>0 && m.x>-80 && m.x<innerWidth+80 && m.y>-80 && m.y<innerHeight+80);
+    meteors = meteors.filter(m=> m.life>0 && m.x>-120 && m.x<innerWidth+120 && m.y>-120 && m.y<innerHeight+120);
   }
 
-  // ------------ star speed ------------
+  // ------- velocidad estrellas -------
   function setStarSpeed(mult){
     speedMult = mult;
     document.querySelectorAll('.v-star').forEach(s=>{
       if(!s._base){ s._base = parseFloat(getComputedStyle(s).animationDuration) || 2.8; }
-      const newDur = Math.max(1.4, s._base / speedMult);
+      const newDur = Math.max(1.2, s._base / speedMult);
       s.style.animationDuration = newDur + 's';
     });
   }
 
-  // ------------ cues ------------
+  // ------- Cues + Heartbeat (nunca >3s sin evento) -------
   function makeCues(){
     cues=[];
     const add=(t,fn)=> cues.push({t,fn,done:false});
 
-    // coreografía (solo viaje)
+    // Coreografía principal (marcas musicales)
     add(START + 0.5, ()=>{ drawConst=true; });
     add(START + 5,   ()=> spawnWhisper());            // 1:06
     add(START + 11,  ()=> microFlash());              // 1:12
-    add(START + 17,  ()=> spawnWhisper());            // 1:18 (refuerzo)
+    add(START + 17,  ()=> spawnWhisper());            // 1:18
     add(START + 23,  ()=> spawnMeteor());             // 1:24
-    add(START + 27,  ()=> { spawnMeteor(); setStarSpeed(1.05);} ); // ~1:28
+    add(START + 27,  ()=> { spawnMeteor(); setStarSpeed(1.07);} ); // 1:28
 
     add(START + 35,  ()=> cornerSparkles());          // 1:36
     add(START + 41,  ()=> spawnWhisper());            // 1:42
     add(START + 47,  ()=> microFlash());              // 1:48
-    add(START + 49,  ()=> setStarSpeed(1.13));        // ~1:50 (+13% total)
-    add(START + 51,  ()=> microFlash());              // 1:52
+    add(START + 49,  ()=> setStarSpeed(1.16));        // 1:50
     add(START + 55,  ()=> spawnCrossMeteors());       // 1:56
 
     add(START + 63,  ()=> { document.body.classList.add('v-ramp-1'); microFlash(); }); // 2:04
@@ -225,42 +240,53 @@
     add(START + 77,  ()=> spawnFanMeteors());         // 2:18
     add(START + 79,  ()=> document.body.classList.add('v-preclimax'));                // 2:20
     add(START + 82,  ()=> microFlash());              // 2:23
-
-    add(END, ()=> { /* aquí no cortamos; el clímax lo hará después */ });
   }
 
   function runCues(t){
-    for(const c of cues){ if(!c.done && t>=c.t){ try{c.fn();}catch(e){console.warn(e)} c.done=true; } }
+    for(const c of cues){ if(!c.done && t>=c.t){ try{c.fn();}catch(e){console.warn(e)} c.done=true; lastPulseT=t; } }
+    // Heartbeat: si pasaron >3.2s sin nada, lanzamos un mini evento
+    const span = t - lastPulseT;
+    const progress = Math.min(1, (t-START) / (END-START)); // 0 → 1
+    const maxGap = 3.2 - 1.0*progress; // se acelera un poco hacia el final
+    if(span >= maxGap){
+      // Elegir evento suave aleatorio
+      const r = Math.random();
+      if(r < 0.34) spawnWhisper();
+      else if(r < 0.68) spawnMeteor({speed: rand(480,620)});
+      else microFlash();
+      lastPulseT = t;
+    }
   }
 
-  // ------------ RAF loop ------------
+  // ------- RAF loop -------
   function raf(){
-    const now=performance.now(); const dt= last? (now-last):16.6; last=now;
+    const now=performance.now(); const dt= lastRAF? (now-lastRAF):16.6; lastRAF=now;
+    applyLayerTransforms(now);
     if(drawConst) drawConstellations(dt); else ctx.clearRect(0,0,innerWidth,innerHeight);
     if(meteors.length) drawMeteors(dt);
-    // document.getElementById('v-t')?.textContent = (audio.currentTime||0).toFixed(1); // debug
     rafId = requestAnimationFrame(raf);
   }
 
-  // ------------ start/boot ------------
+  // ------- start -------
   function start(){
     if(active) return;
-    resize(); buildSky(); buildConstellations(); setupParallax(); setupSparkles(); makeCues();
+    resize(); buildSky(); buildConstellations(); setupParallaxAndDrift(); makeCues();
     document.body.classList.add('v-active');
     audio.addEventListener('timeupdate', onTimeUpdate);
     addEventListener('resize', onResize);
-    last=performance.now(); raf(); active=true;
+    lastRAF=performance.now(); raf(); active=true;
 
-    // si el usuario adelantó, adaptar
-    if(audio.currentTime>=START+49) setStarSpeed(1.13);
-    else if(audio.currentTime>=START+27) setStarSpeed(1.05);
-    runCues(audio.currentTime||0);
+    // Adaptar si el usuario cae tarde
+    if(audio.currentTime>=START+49) setStarSpeed(1.16);
+    else if(audio.currentTime>=START+27) setStarSpeed(1.07);
+    lastPulseT = audio.currentTime || 0;
+    runCues(audio.currentTime || 0);
   }
 
-  function onTimeUpdate(){ runCues(audio.currentTime||0); }
+  function onTimeUpdate(){ runCues(audio.currentTime || 0); }
   function onResize(){ resize(); buildConstellations(); }
 
-  // botón Play → inicia viaje en 1:01
+  // Botón: inicia desde 1:01
   document.addEventListener('DOMContentLoaded', ()=>{
     resize();
     playBtn?.addEventListener('click', async ()=>{
@@ -270,3 +296,4 @@
   });
 
 })();
+
