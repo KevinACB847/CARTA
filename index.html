@@ -15,23 +15,20 @@
   </style>
 
   <!-- Estilos del viaje -->
-  <link rel="stylesheet" href="CSS/viaje.css" />
+  <link rel="stylesheet" href="CSS/viaje.css?v=7" />
   <meta name="theme-color" content="#0b0f1d" />
 </head>
 <body>
 
-  <!-- Audio (el JS usa document.querySelector('audio')) -->
+  <!-- Audio (el JS fuerza el inicio en 1:01) -->
   <audio id="audio" src="music/planetarium.mp3" preload="auto"></audio>
 
-  <!-- Escena principal (estructura que esperan el CSS/JS) -->
+  <!-- Escena principal del viaje -->
   <div class="stage v-vignette" id="stage" aria-label="Viaje Planetarium">
-    <!-- Fondo pintado por JS: degradado, polvo, bokeh, nebulosas -->
+    <!-- Fondo dibujado por JS: degradado, polvo, bokeh, nebulosas -->
     <canvas id="bgCanvas"></canvas>
 
-    <!-- (Opcional) Foto-cameo encima del fondo; puedes duplicar/alternar por JS -->
-    <!-- <img class="v-photo" id="v-photo" src="IMG/cameo1.jpg" alt="" aria-hidden="true" /> -->
-
-    <!-- Foco dorado elíptico (overlay) -->
+    <!-- Foco dorado elíptico -->
     <div class="foco-dorado"></div>
 
     <!-- FX: rayos curvos, notas-luz, fugaces -->
@@ -51,7 +48,7 @@
   </div>
 
   <!-- Motor del viaje -->
-  <script src="JS/viaje.js"></script>
+  <script src="JS/viaje.js?v=7"></script>
 
   <noscript>
     <div style="position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:#000;color:#fff;padding:24px;text-align:center;">
