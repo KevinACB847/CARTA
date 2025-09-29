@@ -1,45 +1,48 @@
-<script>
-  // Arranca el VIAJE desde 1:01 y genera el campo de estrellas del viaje
-  document.addEventListener('DOMContentLoaded', () => {
-    const audio = document.getElementById('musica');
-    const btn   = document.getElementById('playBtn');
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
+  <title>Viaje — La La Land</title>
 
-    btn.addEventListener('click', async () => {
-      try { audio.currentTime = 61; await audio.play(); } catch(e){}
-      window.Viaje && window.Viaje.start();
+  <!-- Estilos del VIAJE (autónomos) -->
+  <link rel="stylesheet" href="CSS/viaje.css" />
 
-      // === genera estrellas si aún no existen ===
-      setTimeout(() => {
-        const far  = document.getElementById('layer-far');
-        const mid  = document.getElementById('layer-mid');
-        const near = document.getElementById('layer-near');
-        if (!far || !mid || !near) return;
+  <meta name="theme-color" content="#000000" />
+</head>
+<body>
+  <!-- Audio del VIAJE (mismo archivo de tu repo, carpeta /music) -->
+  <audio id="v-audio" src="music/planetarium.mp3" preload="auto"></audio>
 
-        // si ya hay estrellas, no duplicar
-        if (near.querySelector('.star')) return;
+  <!-- Raíz del VIAJE -->
+  <div id="v-root" aria-hidden="false">
+    <div id="v-sky" aria-hidden="true">
+      <div class="v-layer v-far"  id="v-layer-far"></div>
+      <div class="v-layer v-mid"  id="v-layer-mid"></div>
+      <div class="v-layer v-near" id="v-layer-near"></div>
 
-        function makeStars(container, count, sizeVar){
-          const frag = document.createDocumentFragment();
-          for (let i=0;i<count;i++){
-            const s = document.createElement('i');
-            s.className = 'star';
-            s.style.left = (Math.random()*100)+'%';
-            s.style.top  = (Math.random()*100)+'%';
-            s.style.setProperty('--s', sizeVar);
-            s.style.setProperty('--tw', (1.8 + Math.random()*2.2).toFixed(2) + 's');
-            s.style.opacity = (0.55 + Math.random()*0.35).toFixed(2);
-            frag.appendChild(s);
-          }
-          container.appendChild(frag);
-        }
+      <canvas id="v-constellations"></canvas>
+      <div id="v-whispers"></div>
+      <div id="v-sparkles"></div>
+    </div>
 
-        makeStars(far,  120, 'var(--vj-star-far)');
-        makeStars(mid,   90, 'var(--vj-star-mid)');
-        makeStars(near,  60, 'var(--vj-star-near)');
-      }, 0);
-    });
-  });
-</script>
+    <div id="v-ui">
+      <button id="v-play" type="button" aria-label="Iniciar viaje">▶ Iniciar</button>
+      <!-- Debug opcional: <span id="v-t" aria-hidden="true"></span> -->
+    </div>
+  </div>
+
+  <!-- Lógica del VIAJE (autónoma) -->
+  <script src="JS/viaje.js"></script>
+
+  <noscript>
+    <div style="position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:#000;color:#fff;font-family:sans-serif;padding:24px;text-align:center;">
+      Esta experiencia requiere JavaScript habilitado.
+    </div>
+  </noscript>
+</body>
+</html>
+
 
 
 
