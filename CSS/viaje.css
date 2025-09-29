@@ -1,41 +1,69 @@
 /* ===========================
-   VIAJE — Estilos autónomos
+   VIAJE — Estilos autónomos (dinámicos)
    =========================== */
 :root{
+  /* Fondo y tono */
   --v-bg-1:#05060b; --v-bg-2:#0a0e1a;
-  --v-bright:1; --v-sat:1; --v-zoom:1;
-  --v-depth-far:7px; --v-depth-mid:12px; --v-depth-near:18px;
-  --v-star-far:1.1px; --v-star-mid:1.6px; --v-star-near:2.2px;
-  --v-speed:1; /* multiplicador de twinkle/animación */
-  --v-whisper:#e8ecff; --v-whisper-shadow:0 0 12px rgba(140,170,255,.35);
+
+  /* Estado global que modula el “aliento” visual */
+  --v-bright:1;     /* 1 → 1.06 */
+  --v-sat:1;        /* 1 → 1.06 */
+  --v-zoom:1;       /* 1 → 1.045 */
+
+  /* Profundidad/parallax (JS los usa como multiplicadores) */
+  --v-depth-far:7;  /* px */
+  --v-depth-mid:12;
+  --v-depth-near:18;
+
+  /* Drift (cámara flotando) – amplitud en px por capa */
+  --v-drift-far:  2.0;
+  --v-drift-mid:  4.0;
+  --v-drift-near: 7.0;
+
+  /* Field de estrellas */
+  --v-star-far:  1.1px;
+  --v-star-mid:  1.6px;
+  --v-star-near: 2.2px;
+  --v-speed:1;  /* multiplicador de twinkle */
+
+  /* Textos */
+  --v-whisper:#e8ecff;
+  --v-whisper-shadow:0 0 12px rgba(140,170,255,.35);
 }
 
 *{box-sizing:border-box}
 html,body{height:100%}
 body{
-  margin:0; background:radial-gradient(1200px 800px at 50% 60%, var(--v-bg-2), var(--v-bg-1) 65%);
-  color:#fff; overflow:hidden; font-family:ui-sans-serif, system-ui, "Segoe UI", Roboto, Arial, sans-serif;
-  filter:brightness(var(--v-bright)) saturate(var(--v-sat)); transform:scale(var(--v-zoom));
-  transition:filter .6s ease, transform .6s ease, background-color .6s ease;
+  margin:0;
+  background: radial-gradient(1200px 800px at 50% 60%, var(--v-bg-2), var(--v-bg-1) 65%);
+  color:#fff; overflow:hidden;
+  font-family:ui-sans-serif, system-ui, "Segoe UI", Roboto, Arial, sans-serif;
+  filter:brightness(var(--v-bright)) saturate(var(--v-sat));
+  transform:scale(var(--v-zoom));
+  transition:filter .4s ease, transform .4s ease;
 }
 
-/* Sky/capas */
+/* ===== Sky / capas ===== */
 #v-sky{position:fixed; inset:0; pointer-events:none;}
-.v-layer{position:absolute; inset:0; filter:drop-shadow(0 0 2px rgba(255,255,255,.05))}
+.v-layer{position:absolute; inset:0; filter:drop-shadow(0 0 2px rgba(255,255,255,.05));}
+
 .v-star{
-  position:absolute; width:var(--s,2px); height:var(--s,2px);
+  position:absolute;
+  width:var(--s,2px); height:var(--s,2px);
   background:radial-gradient(circle,#fff,rgba(255,255,255,.65) 60%,transparent 70%);
   border-radius:50%;
   opacity:var(--o,.8);
   animation:v-twinkle calc(var(--tw,2.8s)/var(--v-speed)) linear infinite;
 }
 @keyframes v-twinkle{
-  0%,100%{opacity:var(--tw-min,.5); transform:scale(1)}
-  50%{opacity:var(--tw-max,.9); transform:scale(1.06)}
+  0%,100%{ opacity:var(--tw-min,.5); transform:scale(1) }
+  50%    { opacity:var(--tw-max,.9); transform:scale(1.06) }
 }
 
 /* Canvas constelaciones */
-#v-constellations{position:absolute; inset:0; pointer-events:none; mix-blend-mode:screen; opacity:.85}
+#v-constellations{
+  position:absolute; inset:0; pointer-events:none; mix-blend-mode:screen; opacity:.88;
+}
 
 /* Whispers */
 #v-whispers{position:absolute; inset:0; pointer-events:none;}
@@ -62,11 +90,13 @@ body{
 }
 @keyframes v-spark{to{transform:translate(-50%,-50%) scale(1.8); opacity:0}}
 
-/* Flash corto */
-.v-flash{position:fixed; inset:0; pointer-events:none;
+/* Micro-flash */
+.v-flash{
+  position:fixed; inset:0; pointer-events:none;
   background:radial-gradient(circle at 50% 50%, rgba(255,255,255,.16), rgba(255,255,255,0) 60%);
-  animation:v-flash .1s ease-out forwards;}
-@keyframes v-flash{from{opacity:.9} to{opacity:0}}
+  animation:v-flash .12s ease-out forwards;
+}
+@keyframes v-flash{from{opacity:.95} to{opacity:0}}
 
 /* UI */
 #v-ui{position:fixed; left:16px; bottom:16px; z-index:10; pointer-events:auto}
@@ -75,12 +105,12 @@ body{
   cursor:pointer; font-weight:600;
 }
 
-/* Estados de rampa/preclímax (se aplican al <body> vía JS) */
-body.v-ramp-1{filter:brightness(1.04) saturate(1.04)}
-body.v-preclimax{--v-bright:1.06; --v-zoom:1.045}
+/* Estados */
+body.v-ramp-1{ filter:brightness(1.04) saturate(1.04); }
+body.v-preclimax{ --v-bright:1.06; --v-zoom:1.045; }
 
-/* Salvaguarda: si por algo no hay viaje activo, oculta overlays */
+/* Seguridad: si no está activo, oculta overlays */
 body:not(.v-active) #v-constellations,
 body:not(.v-active) #v-whispers,
-body:not(.v-active) #v-sparkles{display:none}
+body:not(.v-active) #v-sparkles{ display:none }
 
