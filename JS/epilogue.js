@@ -6,14 +6,11 @@
 (() => {
   // ---------- Helpers ----------
   const $  = s => document.querySelector(s);
-  const $$ = s => [...document.querySelectorAll(s)];
 
   const stage = $('#stage');
   const screen = $('#screen');
   const img = $('#frame');
   const vid = $('#clip');
-  const grain = $('#grain');
-  const projector = $('#projector');
   const tTop = $('#text-top');
   const tBottom = $('#text-bottom');
   const playBtn = $('#play');
@@ -57,16 +54,22 @@
 
   // ---------- Setup ----------
   audio.src = AUDIO_SRC;
-  // Botón play/pause
+
+  // Botón play/pause + SALTO a 5:40
+  let jumped = false;
   playBtn.addEventListener('click', () => {
     audio.paused ? audio.play() : audio.pause();
   });
-  audio.addEventListener('play',  () => { playBtn.textContent = '⏸'; stage.classList.add('beam'); });
+  audio.addEventListener('play',  () => {
+    playBtn.textContent = '⏸';
+    stage.classList.add('beam'); // enciende el “proyector”
+    if (!jumped) { audio.currentTime = 340; jumped = true; } // <<--- SALTO A 5:40
+  });
   audio.addEventListener('pause', () => { playBtn.textContent = '▶︎'; });
 
-  // Video config
+  // Video config (requerido para móvil)
   vid.setAttribute('playsinline', '');
-  vid.muted = true; // ¡Muy importante para móviles!
+  vid.muted = true;
 
   // Preload de imágenes
   PLAN.forEach(it => { if (it.src) { const p = new Image(); p.src = it.src; } });
@@ -92,9 +95,8 @@
     img.classList.remove('kb');
 
     if (it.breathe) stage.classList.add('breathe');
+    // Aplica Ken Burns solo si la imagen ya está visible
     if (it.kb && img.classList.contains('show')) img.classList.add('kb');
-    // Tejido del proyector en olas más vivas (opcional):
-    // if (it.breathe) screen.classList.add('weave'); else screen.classList.remove('weave');
 
     if (it.flare) makeFlare();
   }
@@ -116,7 +118,6 @@
       if (vid.src !== it.video) vid.src = it.video;
       vid.currentTime = 0;
       vid.classList.add('show');
-      // Reproducir sin sonido; en iOS requiere que el audio (pista principal) esté ya en play
       vid.play().catch(()=>{ /* algunos móviles bloquean; no es crítico */ });
     } else if (it.src){
       // Mostrar imagen
@@ -140,20 +141,18 @@
     rafId = requestAnimationFrame(step);
   }
 
-  // Opcional: pausa el bucle cuando la pestaña no está visible (ahorra batería)
+  // Pausar RAF cuando la pestaña no está visible (ahorra batería)
   document.addEventListener('visibilitychange', () => {
     if (document.hidden) { cancelAnimationFrame(rafId); rafId = null; }
     else if (!rafId) { rafId = requestAnimationFrame(step); }
   });
 
-  // Iniciar cuando el audio esté listo
+  // Iniciar watcher cuando el audio esté listo
   audio.addEventListener('loadedmetadata', () => {
-    // Empieza en 5:40 si quieres probar solo el tramo final:
-    // audio.currentTime = 340; 
     rafId = requestAnimationFrame(step);
   });
 
-  // Tap: corazoncito/estrella flotante (bonito y liviano)
+  // Toque bonito: corazoncito/estrella al tocar (no interrumpe nada)
   screen.addEventListener('pointerdown', (e) => {
     const s = document.createElement('div');
     s.textContent = '✦';
@@ -174,7 +173,5 @@
     });
     setTimeout(() => s.remove(), 1300);
   });
-
-  // Autoplay en móvil: requiere gesto previo; si no hay sonido al cargar,
-  // el usuario puede tocar el botón ▶︎ para iniciar.
 })();
+
