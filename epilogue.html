@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
   <title>La La Land — Epílogo</title>
 
-  <!-- Preloads para que arranque suave -->
+  <!-- Preloads para arrancar suave (no son obligatorios) -->
   <link rel="preload" as="audio" href="music/epilogue.mp3">
   <link rel="preload" as="image" href="IMG/01-terraza-luces.jpg">
   <link rel="preload" as="video" href="IMG/07-video-vangogh.mp4">
@@ -29,7 +29,7 @@
       <div id="projector" aria-hidden="true"></div>
     </section>
 
-    <!-- Control mínimo (requerido para autoplay en móviles) -->
+    <!-- Control mínimo (móvil exige interacción para audio) -->
     <button id="play" type="button" aria-label="Reproducir / Pausar">▶︎</button>
   </main>
 
@@ -40,3 +40,4 @@
   <script src="JS/epilogue.js" defer></script>
 </body>
 </html>
+
