@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
+  <title>La La Land — Epílogo</title>
+
+  <!-- Preloads para que arranque suave -->
+  <link rel="preload" as="audio" href="music/epilogue.mp3">
+  <link rel="preload" as="image" href="IMG/01-terraza-luces.jpg">
+  <link rel="preload" as="video" href="IMG/07-video-vangogh.mp4">
+
+  <link rel="stylesheet" href="CSS/epilogue.css" />
+  <meta name="theme-color" content="#000000">
+</head>
+<body>
+  <main id="stage" aria-label="mini cine">
+    <!-- Barras negras con textos tipo “cine” -->
+    <div id="bars">
+      <div id="bar-top"><span id="text-top"></span></div>
+      <div id="bar-bottom"><span id="text-bottom"></span></div>
+    </div>
+
+    <!-- Pantalla principal -->
+    <section id="screen" aria-live="polite">
+      <img id="frame" alt="" decoding="async" />
+      <video id="clip" playsinline muted></video>
+      <div id="grain" aria-hidden="true"></div>
+      <div id="projector" aria-hidden="true"></div>
+    </section>
+
+    <!-- Control mínimo (requerido para autoplay en móviles) -->
+    <button id="play" type="button" aria-label="Reproducir / Pausar">▶︎</button>
+  </main>
+
+  <!-- Pista de audio principal -->
+  <audio id="song" preload="auto" src="music/epilogue.mp3"></audio>
+
+  <noscript>Activa JavaScript para ver el epílogo ✨</noscript>
+  <script src="JS/epilogue.js" defer></script>
+</body>
+</html>
