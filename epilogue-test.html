@@ -1,0 +1,99 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1" />
+<title>Epílogo — Test Inline</title>
+<style>
+  :root{ --bar-h:12vh; --fg:#f1e9d2; --fade:.85s; --beam:.75; }
+  html,body,#stage{height:100%;margin:0;background:#000;color:var(--fg);font-family:ui-serif,Georgia,serif}
+  #stage{position:relative;overflow:hidden;-webkit-tap-highlight-color:transparent}
+  #bars{position:absolute;inset:0;pointer-events:none;z-index:5}
+  #bar-top,#bar-bottom{position:absolute;left:0;right:0;height:var(--bar-h);background:#000;display:flex;align-items:center;justify-content:center;padding:0 5vw}
+  #bar-top{top:0} #bar-bottom{bottom:0}
+  #text-top,#text-bottom{font-size:clamp(14px,2.2vw,28px);text-shadow:0 1px 2px rgba(0,0,0,.8)}
+  #screen{position:absolute;inset:0;display:grid;place-items:center;background:#000}
+  #frame,#clip{position:absolute;inset:0;margin:auto;width:100%;height:100%;object-fit:contain;aspect-ratio:16/9;opacity:0;transition:opacity var(--fade) ease}
+  .show{opacity:1!important}
+  #grain{position:absolute;inset:0;z-index:4;pointer-events:none;opacity:.08;mix-blend-mode:soft-light;
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='64' height='64'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.8' numOctaves='2'/%3E%3CfeColorMatrix values='0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 .25 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+    background-size:256px 256px}
+  #projector{position:absolute;inset:0;z-index:3;pointer-events:none;opacity:0;transition:opacity 1.2s ease;
+    background:radial-gradient(ellipse at 50% 45%, rgba(255,240,210,.14), transparent 60%),
+               radial-gradient(ellipse at 50% 55%, rgba(255,225,180,.08), transparent 65%)}
+  .beam #projector{opacity:var(--beam)}
+  /* Botón super visible para descartar estilos */
+  #play{position:fixed;right:12px;bottom:12px;z-index:99;background:#fff;color:#000;
+        border:none;border-radius:10px;padding:.7rem 1rem;font-size:18px}
+</style>
+</head>
+<body>
+  <main id="stage">
+    <div id="bars">
+      <div id="bar-top"><span id="text-top"></span></div>
+      <div id="bar-bottom"><span id="text-bottom"></span></div>
+    </div>
+    <section id="screen" aria-live="polite">
+      <img id="frame" alt="" decoding="async" />
+      <video id="clip" playsinline muted></video>
+      <div id="grain" aria-hidden="true"></div>
+      <div id="projector" aria-hidden="true"></div>
+    </section>
+    <button id="play">▶︎</button>
+  </main>
+  <audio id="song" preload="auto" src="music/epilogue.mp3"></audio>
+
+<script>
+(() => {
+  const $=s=>document.querySelector(s);
+  const stage=$('#stage'), screen=$('#screen'), img=$('#frame'), vid=$('#clip');
+  const tTop=$('#text-top'), tBottom=$('#text-bottom'), btn=$('#play'), audio=$('#song');
+
+  // MISMAS RUTAS QUE TU PROYECTO
+  const PLAN=[
+    {start:340,dur:4,type:'black'},
+    {start:344,dur:14,src:'IMG/01-terraza-luces.jpg', textTop:'Nuestro pequeño cine.'},
+    {start:358,dur:12,src:'IMG/02-manos-pizza.jpg', textBottom:'Donde fuimos nosotros.'},
+    {start:370,dur:12,src:'IMG/03-bus-ventana.jpg'},
+    {start:382,dur:12,src:'IMG/04-espejos-beso.jpg'},
+    {start:394,dur:12,src:'IMG/05-invernadero-beso.jpg'},
+    {start:406,dur:10,src:'IMG/06-beso-mejilla-jean.jpg', textBottom:'Por los planes que soñamos.'},
+    {start:416,dur:14,video:'IMG/07-video-vangogh.mp4', textBottom:'Contigo todo fue posible.'},
+    {start:430,dur:14,src:'IMG/08-cafe-balcon.jpg'},
+    {start:444,dur:16,src:'IMG/09-selfie-celeste.jpg', textTop:'Feliz cumpleaños, amor.', textBottom:'Para ti, que eres mi estrella ✨'}
+  ];
+
+  // BOTÓN + SALTO A 5:40
+  let jumped=false;
+  btn.addEventListener('click',()=>{
+    if(audio.paused){ audio.play().then(()=>{
+      if(!jumped){ audio.currentTime=340; jumped=true; }
+      btn.textContent='⏸'; stage.classList.add('beam');
+    }).catch(e=>{ alert('Toca de nuevo ▶︎ (política del navegador)'); }); }
+    else { audio.pause(); btn.textContent='▶︎'; }
+  });
+
+  // Video móvil
+  vid.setAttribute('playsinline',''); vid.muted=true;
+
+  // Preload
+  PLAN.forEach(x=>{ if(x.src){ const p=new Image(); p.src=x.src; } });
+
+  // Render
+  let idx=-1; function show(it){
+    tTop.textContent=it.textTop||''; tBottom.textContent=it.textBottom||'';
+    if(it.type==='black'){ img.classList.remove('show'); vid.classList.remove('show'); return; }
+    if(it.video){ img.classList.remove('show'); if(vid.src!==it.video) vid.src=it.video; vid.currentTime=0; vid.classList.add('show'); vid.play().catch(()=>{}); }
+    else { vid.pause(); vid.classList.remove('show'); img.src=it.src; img.classList.add('show'); }
+  }
+  function step(){
+    const now=audio.currentTime;
+    const k=PLAN.findIndex(it=> now>=it.start-0.05 && now<(it.start+(it.dur||3)));
+    if(k!==-1 && k!==idx){ idx=k; show(PLAN[k]); }
+    requestAnimationFrame(step);
+  }
+  audio.addEventListener('loadedmetadata',()=>requestAnimationFrame(step));
+})();
+</script>
+</body>
+</html>
