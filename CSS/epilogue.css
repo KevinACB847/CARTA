@@ -1,0 +1,177 @@
+/* ===========================
+   La La Land — Epílogo (CSS)
+   Enfocado a fluidez en móvil/PC
+   =========================== */
+
+:root{
+  /* Colores / look cine */
+  --bg: #000;                 /* fondo absoluto */
+  --fg: #f1e9d2;              /* texto cálido */
+  --accent: #ffe6b3;          /* cálido suave */
+
+  /* Barras negras y tipografía */
+  --bar-h: 12vh;              /* alto de barras; se ajusta abajo en móvil */
+  --font: ui-serif, Georgia, "Times New Roman", serif;
+  --font-size: clamp(14px, 2.2vw, 28px);
+
+  /* Efectos sutiles */
+  --grain-opacity: .08;       /* 0..1 */
+  --beam-opacity: .75;        /* 0..1 */
+  --breathing-max: .12;       /* extra opacity en respiración */
+
+  /* Tiempos de transiciones */
+  --fade: .85s;               /* entradas/salidas suaves */
+  --flare: 1s;
+}
+
+/* Reset mínimo */
+* { box-sizing:border-box; }
+html, body { height:100%; margin:0; background:var(--bg); color:var(--fg); }
+img, video { display:block; max-width:100%; }
+
+/* Escenario principal */
+#stage{
+  position:relative;
+  height:100%;
+  overflow:hidden;
+  background:#000;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Pantalla de “cine”: imagen o video centrados con letterbox */
+#screen{
+  position:absolute; inset:0;
+  display:grid; place-items:center;
+  background:#000;
+  isolation:isolate; /* capas independientes (grain/beam encima) */
+}
+
+#frame, #clip{
+  position:absolute; inset:0; margin:auto;
+  width:100%; height:100%;
+  object-fit:contain;                 /* respeta 16:9 / verticales con barras */
+  aspect-ratio: 16/9;                 /* ayuda al reflow */
+  opacity:0; transition:opacity var(--fade) ease;
+  will-change: opacity, transform;    /* GPU-friendly */
+}
+.show { opacity:1 !important; }       /* JS alterna esta clase */
+
+/* Barras negras y textos */
+#bars{ position:absolute; inset:0; pointer-events:none; z-index:5; }
+#bar-top, #bar-bottom{
+  position:absolute; left:0; right:0; height:var(--bar-h);
+  background:#000; display:flex; align-items:center; justify-content:center;
+  padding:0 clamp(10px, 4vw, 60px);
+  filter: saturate(90%);  /* para que el negro no “cruje” en OLED */
+}
+#bar-top{ top:0; }
+#bar-bottom{ bottom:0; }
+
+#text-top, #text-bottom{
+  font-family: var(--font);
+  font-size: var(--font-size);
+  letter-spacing:.015em;
+  text-align:center;
+  line-height:1.2;
+  opacity:.92;
+  text-wrap: balance;
+  text-shadow: 0 1px 2px rgba(0,0,0,.8);
+}
+
+/* Grano sutil (imagen inline muy pequeña o tu textura) */
+#grain{
+  position:absolute; inset:0; z-index:4; pointer-events:none;
+  opacity:var(--grain-opacity); mix-blend-mode:soft-light;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='64' height='64'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.8' numOctaves='2'/%3E%3CfeColorMatrix values='0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 .25 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  background-size: 256px 256px;
+}
+
+/* Haz de proyector (radial suave). JS añade .beam en reproducción */
+#projector{
+  position:absolute; inset:0; z-index:3; pointer-events:none;
+  opacity:0; transition:opacity 1.2s ease;
+  background:
+    radial-gradient(ellipse at 50% 45%, rgba(255,240,210,.14), transparent 60%),
+    radial-gradient(ellipse at 50% 55%, rgba(255,225,180,.08), transparent 65%);
+}
+.beam #projector{ opacity:var(--beam-opacity); }
+
+/* ===========================
+   Animaciones opcionales
+   (añade estas clases desde JS a #frame)
+   =========================== */
+
+/* Ken Burns mínimo (no más de +4%) */
+@keyframes kb-slow {
+  0%   { transform: scale(1) translate3d(0,0,0); }
+  100% { transform: scale(1.04) translate3d(.5%, .5%, 0); }
+}
+.kb { animation: kb-slow 12s linear both; will-change: transform; }
+
+/* “Respiración” del haz (muy leve) — aplícala a #projector con .breathe */
+@keyframes breathe {
+  0%, 100% { opacity: var(--beam-opacity); }
+  50%      { opacity: calc(var(--beam-opacity) + var(--breathing-max)); }
+}
+.breathe #projector{ animation: breathe 8s ease-in-out infinite; }
+
+/* Flare suave (una pasada) — crea un div .flare sobre #screen cuando quieras */
+.flare{
+  position:absolute; inset:0; z-index:6; pointer-events:none;
+  background: linear-gradient(110deg, transparent 45%, rgba(255,240,210,.25) 50%, transparent 55%);
+  transform: translateX(-120%);
+  animation: flare-move var(--flare) ease-out forwards;
+}
+@keyframes flare-move{
+  to{ transform: translateX(120%); }
+}
+
+/* Micro “gate-weave” (oscilación de proyector) — aplícalo al contenedor #screen en olas */
+@keyframes weave {
+  0% { transform: translate3d(0, 0, 0); }
+  50%{ transform: translate3d(.3px, -.3px, 0); }
+  100%{ transform: translate3d(0, 0, 0); }
+}
+.weave { animation: weave 3.5s ease-in-out infinite; }
+
+/* Estados de utilidad */
+.hidden{ opacity:0; pointer-events:none; }
+.fade-in{ animation: fadeIn var(--fade) ease forwards; }
+.fade-out{ animation: fadeOut var(--fade) ease forwards; }
+@keyframes fadeIn{ from{opacity:0} to{opacity:1} }
+@keyframes fadeOut{ from{opacity:1} to{opacity:0} }
+
+/* ===========================
+   Responsivo
+   =========================== */
+
+/* Móvil: barras un poco más finas; textos más pequeños.
+   Safe-area para notch (iPhone, etc.) */
+@media (max-width: 768px){
+  :root{
+    --bar-h: 10vh;
+    --font-size: clamp(13px, 3.8vw, 22px);
+  }
+  #bar-top{ padding-top: max(0px, env(safe-area-inset-top)); }
+  #bar-bottom{ padding-bottom: max(0px, env(safe-area-inset-bottom)); }
+}
+
+/* Pantallas muy altas (móvil vertical): reduce ligeramente barras */
+@media (max-width: 480px) and (min-aspect-ratio: 9/21){
+  :root{ --bar-h: 9vh; }
+}
+
+/* Desktop amplio: sube un poco tamaño del texto, mantiene barras */
+@media (min-width: 1200px){
+  :root{ --font-size: clamp(16px, 1.6vw, 30px); }
+}
+
+/* ===========================
+   Accesibilidad / Ahorro batería
+   =========================== */
+@media (prefers-reduced-motion: reduce){
+  .kb, .weave, .breathe #projector, .flare{
+    animation: none !important;
+  }
+  #frame, #clip{ transition: none !important; }
+}
