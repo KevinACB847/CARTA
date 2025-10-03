@@ -5,12 +5,227 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>La La Land – Planetarium Epic (2:25-3:59)</title>
 
-  <!-- Estilos épicos -->
-  <link rel="stylesheet" href="epic.css" />
-
-  <!-- Estilos extra para este demo -->
+  <!-- ✅ CSS INCLUIDO DIRECTAMENTE (sin epic.css) -->
   <style>
-    /* Botón cine */
+    /* =========================================
+       La La Land – Planetarium Epic
+       2:25 → 3:59 (145s → 239s)
+       Estilo: cine cósmico, nebulosa, estrellas, flares
+       ========================================= */
+
+    :root {
+      --epic-bg: #000000;
+      --epic-tint-1: rgba(100, 200, 255, 0.12);
+      --epic-tint-2: rgba(170, 130, 255, 0.10);
+      --epic-tint-3: rgba(255, 200, 220, 0.08);
+      --star-glow-1: rgba(255, 255, 245, 0.9);
+      --star-glow-2: rgba(220, 240, 255, 0.7);
+      --flare-color: rgba(255, 240, 210, 0.25);
+      --vignette-strength: 0.6;
+      --breathing-duration: 10s;
+      --zoom-duration: 20s;
+      --ease-epic: cubic-bezier(0.22, 0.61, 0.36, 1);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+    html, body {
+      margin: 0;
+      padding: 0;
+      height: 100%;
+      background: var(--epic-bg);
+      color: #fff;
+      font-family: ui-serif, Georgia, serif;
+      overflow: hidden;
+    }
+
+    body.epic {
+      background: var(--epic-bg);
+      animation: epic-tint-cycle 30s infinite;
+    }
+
+    @keyframes epic-tint-cycle {
+      0%   { background-color: #000511; }
+      25%  { background-color: #020a1a; }
+      50%  { background-color: #0a001a; }
+      75%  { background-color: #001a1a; }
+      100% { background-color: #000511; }
+    }
+
+    #nebula-bg {
+      position: fixed;
+      inset: 0;
+      z-index: -3;
+      opacity: 0;
+      transition: opacity 3s var(--ease-epic);
+      background:
+        radial-gradient(ellipse at 30% 20%, var(--epic-tint-1) 0%, transparent 50%),
+        radial-gradient(ellipse at 70% 80%, var(--epic-tint-2) 0%, transparent 50%),
+        radial-gradient(ellipse at 50% 50%, var(--epic-tint-3) 0%, transparent 60%);
+      animation: nebula-drift 40s infinite linear, nebula-pulse 15s infinite alternate;
+    }
+
+    body.epic #nebula-bg {
+      opacity: 1;
+    }
+
+    @keyframes nebula-drift {
+      from { transform: translate(0, 0) scale(1); }
+      to   { transform: translate(-50px, -30px) scale(1.2); }
+    }
+
+    @keyframes nebula-pulse {
+      from { filter: brightness(0.8) saturate(1.2); }
+      to   { filter: brightness(1.2) saturate(1.6); }
+    }
+
+    #stars-layer-1,
+    #stars-layer-2,
+    #stars-layer-3 {
+      position: fixed;
+      inset: 0;
+      z-index: -2;
+      opacity: 0;
+      transition: opacity 2s ease;
+      background-image:
+        radial-gradient(1px 1px at 10% 20%, var(--star-glow-1), transparent),
+        radial-gradient(1px 1px at 80% 90%, var(--star-glow-2), transparent),
+        radial-gradient(1px 1px at 50% 50%, var(--star-glow-1), transparent),
+        radial-gradient(2px 2px at 30% 70%, var(--star-glow-2), transparent);
+      background-size: 400px 400px;
+      animation: stars-twinkle 4s infinite;
+    }
+
+    body.epic #stars-layer-1,
+    body.epic #stars-layer-2,
+    body.epic #stars-layer-3 {
+      opacity: 1;
+    }
+
+    #stars-layer-2 {
+      transform: scale(1.3);
+      animation-duration: 6s;
+      filter: blur(0.5px);
+    }
+
+    #stars-layer-3 {
+      transform: scale(1.6);
+      animation-duration: 8s;
+      filter: blur(1px);
+    }
+
+    @keyframes stars-twinkle {
+      0%, 100% { opacity: 0.3; }
+      50%      { opacity: 1; }
+    }
+
+    #vignette-epic {
+      position: fixed;
+      inset: 0;
+      z-index: 10;
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity 2s ease;
+      background: radial-gradient(
+        ellipse at center,
+        transparent 60%,
+        rgba(0, 0, 0, var(--vignette-strength)) 100%
+      );
+      animation: vignette-breathe var(--breathing-duration) infinite alternate;
+    }
+
+    body.epic #vignette-epic {
+      opacity: 1;
+    }
+
+    @keyframes vignette-breathe {
+      from { transform: scale(1); opacity: 0.8; }
+      to   { transform: scale(1.05); opacity: 1; }
+    }
+
+    .flare-epic {
+      position: fixed;
+      inset: 0;
+      z-index: 12;
+      pointer-events: none;
+      background: linear-gradient(
+        110deg,
+        transparent 40%,
+        var(--flare-color) 50%,
+        transparent 60%
+      );
+      transform: translateX(-120%);
+      animation: flare-move 1.2s var(--ease-epic) forwards;
+    }
+
+    @keyframes flare-move {
+      to { transform: translateX(120%); }
+    }
+
+    #cosmic-frame {
+      position: absolute;
+      inset: 0;
+      margin: auto;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      opacity: 0;
+      transition: opacity 3s var(--ease-epic), transform var(--zoom-duration) linear;
+      will-change: transform, opacity;
+      animation: cosmic-zoom var(--zoom-duration) infinite alternate;
+    }
+
+    body.epic #cosmic-frame {
+      opacity: 0.6;
+    }
+
+    @keyframes cosmic-zoom {
+      from { transform: scale(1.2) rotate(0deg); }
+      to   { transform: scale(1) rotate(2deg); }
+    }
+
+    #tint-epic {
+      position: fixed;
+      inset: 0;
+      z-index: 5;
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity 3s ease;
+      background: linear-gradient(
+        135deg,
+        rgba(100, 200, 255, 0.15) 0%,
+        rgba(170, 130, 255, 0.1) 50%,
+        rgba(255, 200, 220, 0.05) 100%
+      );
+      animation: tint-shift 20s infinite alternate;
+    }
+
+    body.epic #tint-epic {
+      opacity: 1;
+    }
+
+    @keyframes tint-shift {
+      from { filter: hue-rotate(0deg) saturate(1); }
+      to   { filter: hue-rotate(60deg) saturate(1.3); }
+    }
+
+    @media (max-width: 768px) {
+      :root {
+        --zoom-duration: 15s;
+        --breathing-duration: 8s;
+      }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      * {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+      }
+    }
+
+    /* Estilos del botón de inicio */
     #launch {
       position: fixed;
       inset: 0;
@@ -33,17 +248,6 @@
       transform: scale(1.05);
     }
 
-    /* Ocultar elementos hasta épico */
-    #nebula-gl,
-    #stars-layer-1,
-    #stars-layer-2,
-    #stars-layer-3,
-    #vignette-epic,
-    #tint-epic {
-      opacity: 0;
-    }
-
-    /* Tipografía */
     #info {
       position: fixed;
       bottom: 2rem;
@@ -70,24 +274,163 @@
   <!-- Audio -->
   <audio id="song" src="music/planetarium.mp3" preload="auto"></audio>
 
-  <!-- Scripts -->
-  <script src="epic.js"></script>
-
-  <!-- Control de lanzamiento -->
+  <!-- ✅ Script integrado con DOMContentLoaded -->
   <script>
-    const btn   = document.getElementById('playBtn');
-    const audio = document.getElementById('song');
-    const launch= document.getElementById('launch');
+    document.addEventListener('DOMContentLoaded', () => {
+      const EPIC_START = 145;   // 2:25
+      const EPIC_END   = 239;   // 3:59
 
-    btn.onclick = () => {
-      audio.currentTime = 145; // saltar al min 2:25
-      audio.play();
-      launch.style.opacity = '0';
-      setTimeout(() => launch.remove(), 1000);
-    };
+      const compasRelativo = [
+        0, 3.6, 7.2, 10.8, 14.4, 18, 21.6, 25.2,
+        28.8, 32.4, 36, 39.6, 43.2, 46.8, 50.4, 54
+      ];
+      const compas = compasRelativo.map(t => EPIC_START + t);
+      let nextCompas = 0;
 
-    // Si el audio termina, recargar página (opcional)
-    audio.addEventListener('ended', () => location.reload());
+      const body  = document.body;
+      const audio = document.getElementById('song');
+      const btn   = document.getElementById('playBtn');
+      const launch= document.getElementById('launch');
+
+      if (!audio) {
+        console.error("❌ No se encontró el audio");
+        return;
+      }
+
+      // Crear capas visuales
+      const nebulaCanvas = document.createElement('canvas');
+      nebulaCanvas.id = 'nebula-gl';
+      Object.assign(nebulaCanvas.style, {
+        position: 'fixed', inset: 0, zIndex: -3, opacity: 0,
+        transition: 'opacity 3s ease', pointerEvents: 'none'
+      });
+      document.body.appendChild(nebulaCanvas);
+
+      ['stars-layer-1', 'stars-layer-2', 'stars-layer-3'].forEach(id => {
+        const div = document.createElement('div');
+        div.id = id;
+        document.body.appendChild(div);
+      });
+
+      const vignette = document.createElement('div');
+      vignette.id = 'vignette-epic';
+      document.body.appendChild(vignette);
+
+      const tint = document.createElement('div');
+      tint.id = 'tint-epic';
+      document.body.appendChild(tint);
+
+      // WebGL Nebulosa (opcional, si falla sigue sin él)
+      const gl = nebulaCanvas.getContext('webgl') || nebulaCanvas.getContext('experimental-webgl');
+      if (gl) {
+        const vert = `attribute vec2 a_pos; void main(){ gl_Position=vec4(a_pos,0.0,1.0); }`;
+        const frag = `precision mediump float;
+          uniform float u_time; uniform vec2 u_res;
+          vec3 hue(float t){ return 0.5+0.5*cos(t+vec3(0,2,4)); }
+          void main(){
+            vec2 uv = (gl_FragCoord.xy/u_res.xy)*2.0-1.0;
+            uv.x *= u_res.x/u_res.y;
+            vec2 p = uv*2.0; float d = length(p);
+            vec3 col = vec3(0);
+            for(float i=0.;i<5.;i++){
+              float a = atan(p.y,p.x) + u_time*0.05*(i+1.);
+              float r = pow(d, 0.7);
+              float s = sin(25.*r - u_time*1.5 + i);
+              col += 0.015 * s * hue(u_time*0.3 + i);
+              p *= mat2(cos(a),-sin(a),sin(a),cos(a));
+            }
+            col += 0.04/(d+0.02);
+            col *= smoothstep(1.0,0.2,d);
+            gl_FragColor = vec4(col,1.0);
+          }`;
+
+        const createShader = (type, src) => {
+          const sh = gl.createShader(type);
+          gl.shaderSource(sh, src);
+          gl.compileShader(sh);
+          return sh;
+        };
+
+        const program = gl.createProgram();
+        gl.attachShader(program, createShader(gl.VERTEX_SHADER, vert));
+        gl.attachShader(program, createShader(gl.FRAGMENT_SHADER, frag));
+        gl.linkProgram(program);
+        gl.useProgram(program);
+
+        const buf = gl.createBuffer();
+        gl.bindBuffer(gl.ARRAY_BUFFER, buf);
+        gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1,-1, 1,-1, -1,1, 1,1]), gl.STATIC_DRAW);
+        const posLoc = gl.getAttribLocation(program, 'a_pos');
+        gl.enableVertexAttribArray(posLoc);
+        gl.vertexAttribPointer(posLoc, 2, gl.FLOAT, false, 0, 0);
+
+        const timeLoc = gl.getUniformLocation(program, 'u_time');
+        const resLoc  = gl.getUniformLocation(program, 'u_res');
+
+        const resizeGL = () => {
+          const dpr = window.devicePixelRatio || 1;
+          nebulaCanvas.width  = innerWidth * dpr;
+          nebulaCanvas.height = innerHeight * dpr;
+          gl.viewport(0, 0, nebulaCanvas.width, nebulaCanvas.height);
+        };
+        addEventListener('resize', resizeGL);
+        resizeGL();
+
+        let startTime = performance.now();
+        const drawGL = () => {
+          gl.uniform1f(timeLoc, (performance.now() - startTime) * 0.001);
+          gl.uniform2f(resLoc, nebulaCanvas.width, nebulaCanvas.height);
+          gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+          if (body.classList.contains('epic')) requestAnimationFrame(drawGL);
+        };
+        drawGL();
+      }
+
+      // Flares
+      const addFlare = () => {
+        const f = document.createElement('div');
+        f.className = 'flare-epic';
+        document.body.appendChild(f);
+        f.addEventListener('animationend', () => f.remove(), { once: true });
+      };
+
+      // Loop épico
+      const epicLoop = () => {
+        const t = audio.currentTime;
+        const inEpic = t >= EPIC_START && t <= EPIC_END;
+        body.classList.toggle('epic', inEpic);
+
+        if (inEpic) {
+          nebulaCanvas.style.opacity = '1';
+          while (nextCompas < compas.length && t >= compas[nextCompas]) {
+            addFlare();
+            nextCompas++;
+          }
+        } else {
+          nebulaCanvas.style.opacity = '0';
+          if (t < EPIC_START) nextCompas = 0;
+        }
+        requestAnimationFrame(epicLoop);
+      };
+
+      // Iniciar
+      audio.addEventListener('loadedmetadata', epicLoop);
+
+      // Botón de inicio
+      btn.onclick = async () => {
+        try {
+          audio.currentTime = 145;
+          await audio.play();
+          launch.style.opacity = '0';
+          setTimeout(() => launch.remove(), 1000);
+        } catch (e) {
+          console.error("❌ No se pudo reproducir el audio:", e);
+          alert("Por favor, permite el audio y haz clic de nuevo.");
+        }
+      };
+
+      audio.addEventListener('ended', () => location.reload());
+    });
   </script>
 </body>
 </html>
