@@ -40,17 +40,19 @@ function resize(){
 
 addEventListener('resize',resize);
 
-const WORLD={
-  w:stage.clientWidth,h:stage.clientHeight,
-  cx:stage.clientWidth/2,cy:stage.clientHeight/2,
-  t0:61.0,t1:145.0,
-  rotation:0,
-  parallax:{x:0,y:0},
-  ended:false,
-  hasAudio:false,
-  startTime:null
+const WORLD = {
+  w: stage.clientWidth,
+  h: stage.clientHeight,
+  cx: stage.clientWidth / 2,
+  cy: stage.clientHeight / 2,
+  t0: 61.0,          // punto de entrada
+  t1: 239.0,         // ← antes 145  (3:59 exactos)
+  rotation: 0,
+  parallax: { x: 0, y: 0 },
+  ended: false,
+  hasAudio: false,
+  startTime: null
 };
-
 // Galaxia espiral
 const Galaxy={
   arms:[],
