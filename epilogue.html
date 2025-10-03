@@ -2,10 +2,10 @@
 <html lang="es">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1" />
   <title>La La Land — Epílogo</title>
 
-  <!-- Preloads para arrancar suave (no son obligatorios) -->
+  <!-- Preloads (ayudan a que arranque suave) -->
   <link rel="preload" as="audio" href="music/epilogue.mp3">
   <link rel="preload" as="image" href="IMG/01-terraza-luces.jpg">
   <link rel="preload" as="video" href="IMG/07-video-vangogh.mp4">
@@ -15,25 +15,29 @@
 </head>
 <body>
   <main id="stage" aria-label="mini cine">
-    <!-- Barras negras con textos tipo “cine” -->
+    <!-- Barras negras con textos -->
     <div id="bars">
       <div id="bar-top"><span id="text-top"></span></div>
       <div id="bar-bottom"><span id="text-bottom"></span></div>
     </div>
 
-    <!-- Pantalla principal -->
+    <!-- Pantalla -->
     <section id="screen" aria-live="polite">
+      <div id="bg-fill" aria-hidden="true"></div>   <!-- fondo blur -->
       <img id="frame" alt="" decoding="async" />
       <video id="clip" playsinline muted></video>
+      <div id="bokeh" aria-hidden="true"></div>     <!-- polvo/bokeh -->
       <div id="grain" aria-hidden="true"></div>
       <div id="projector" aria-hidden="true"></div>
+      <div id="vignette" aria-hidden="true"></div>  <!-- viñeta -->
+      <div id="tint" aria-hidden="true"></div>      <!-- tinte -->
     </section>
 
-    <!-- Control mínimo (móvil exige interacción para audio) -->
+    <!-- Control requerido por móviles -->
     <button id="play" type="button" aria-label="Reproducir / Pausar">▶︎</button>
   </main>
 
-  <!-- Pista de audio principal -->
+  <!-- Pista de audio -->
   <audio id="song" preload="auto" src="music/epilogue.mp3"></audio>
 
   <noscript>Activa JavaScript para ver el epílogo ✨</noscript>
