@@ -5,27 +5,35 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
   <title>Viaje — Planetarium (1:01–2:25)</title>
   <style>html,body{height:100%}body{margin:0;background:#0b0f1d;color:#f2efe9;overflow:hidden}</style>
-  <link rel="stylesheet" href="CSS/viaje.css?v=8" />
+  <link rel="stylesheet" href="CSS/viaje.css?v=9" />
   <meta name="theme-color" content="#0b0f1d" />
 </head>
 <body>
-  <audio id="audio" src="music/planetarium.mp3" preload="auto"></audio>
+  <!-- Mensaje si no hay audio -->
+  <div class="no-audio-msg hidden" id="noAudioMsg">
+    <p style="font-size:1.2rem;margin:0">⚠️ Audio no disponible</p>
+    <p style="font-size:.9rem;opacity:.8;margin:0">Esta experiencia requiere el archivo de audio "planetarium.mp3"</p>
+    <button class="btn-start" onclick="document.getElementById('noAudioMsg').classList.add('hidden')">Continuar sin audio</button>
+  </div>
+
+  <audio id="audio" preload="auto">
+    <source src="music/planetarium.mp3" type="audio/mpeg">
+    <source src="planetarium.mp3" type="audio/mpeg">
+  </audio>
 
   <div class="stage v-vignette" id="stage" aria-label="Viaje Planetarium">
     <canvas id="bgCanvas"></canvas>
     <div class="foco-dorado"></div>
     <canvas id="fxCanvas"></canvas>
-
     <div class="grain-overlay"></div>
     <div class="flash" id="v-flash"></div>
     <div class="v-whisper" id="v-whisper" aria-live="polite"></div>
-
     <div class="ui">
-      <button class="btn-start" id="btnStart" type="button" aria-label="Iniciar viaje">Iniciar</button>
+      <button class="btn-start" id="btnStart" type="button" aria-label="Iniciar viaje">Iniciar Viaje</button>
     </div>
   </div>
 
-  <script src="JS/viaje.js?v=8"></script>
+  <script src="JS/viaje.js?v=9"></script>
 
   <noscript>
     <div style="position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:#000;color:#fff;padding:24px;text-align:center;">
@@ -34,7 +42,3 @@
   </noscript>
 </body>
 </html>
-
-
-
-
