@@ -1,25 +1,46 @@
-/* ===========================
-   La La Land — Epílogo (CSS)
-   =========================== */
+/* =====================================
+   La La Land — Epílogo (CSS COMPLETO)
+   Cine look + fluidez móvil/PC
+   ===================================== */
 
 :root{
   --bg:#000; --fg:#f1e9d2;
   --bar-h:12vh;
   --font:ui-serif, Georgia, "Times New Roman", serif;
   --font-size:clamp(14px,2.2vw,28px);
-  --fade:.95s; --ease-cine:cubic-bezier(.22,.61,.36,1);
-  --grain-opacity:.08; --beam-opacity:.75; --breathing-max:.12;
+
+  /* Animación / curvas */
+  --fade:.95s;
+  --ease-cine:cubic-bezier(.22,.61,.36,1);
+
+  /* Grading global */
+  --grain-opacity:.08;
+  --beam-opacity:.75;
+  --breathing-max:.12;
+
+  /* Flare */
   --flare:1s;
+
+  /* Variables dinámicas por escena (JS las modifica) */
+  --vig:.35;                    /* fuerza viñeta 0..1 */
+  --tint-op:0;                  /* opacidad del tinte 0..1 */
+  --tint-color:transparent;     /* color del tinte */
+  --blur:0px;                   /* blur inicial (rack focus) */
+  --spot-x:50%;                 /* foco del proyector X */
+  --spot-y:50%;                 /* foco del proyector Y */
 }
 
 *{ box-sizing:border-box; }
 html,body{ height:100%; margin:0; background:#000; color:var(--fg); }
 img,video{ display:block; max-width:100%; }
 
-#stage{ position:relative; height:100%; overflow:hidden; -webkit-tap-highlight-color:transparent; background:#000; }
+#stage{
+  position:relative; height:100%; overflow:hidden; background:#000;
+  -webkit-tap-highlight-color:transparent;
+}
 
-/* BARRAS + TEXTO */
-#bars{ position:absolute; inset:0; pointer-events:none; z-index:5; }
+/* Barras + textos tipo cine */
+#bars{ position:absolute; inset:0; pointer-events:none; z-index:7; }
 #bar-top,#bar-bottom{
   position:absolute; left:0; right:0; height:var(--bar-h);
   background:#000; display:flex; align-items:center; justify-content:center;
@@ -28,73 +49,104 @@ img,video{ display:block; max-width:100%; }
 #bar-top{ top:0; } #bar-bottom{ bottom:0; }
 #text-top,#text-bottom{
   font-family:var(--font); font-size:var(--font-size); line-height:1.2;
-  letter-spacing:.015em; opacity:.92; text-shadow:0 1px 2px rgba(0,0,0,.8); text-align:center; text-wrap:balance;
+  letter-spacing:.015em; text-align:center; text-wrap:balance;
+  opacity:.92; text-shadow:0 1px 2px rgba(0,0,0,.8);
 }
 
-/* PANTALLA */
+/* Pantalla principal */
 #screen{ position:absolute; inset:0; display:grid; place-items:center; background:#000; isolation:isolate; }
+
+/* Fondo blur para profundidad (blur-fill) */
 #bg-fill{
-  position:absolute; inset:0; z-index:0; pointer-events:none; opacity:.6;
-  filter: blur(24px) saturate(110%); transform:scale(1.08);
+  position:absolute; inset:0; z-index:0; pointer-events:none;
+  opacity:.6; filter: blur(24px) saturate(110%); transform:scale(1.08);
   background-position:center; background-size:cover; background-repeat:no-repeat;
 }
+
+/* Imagen / video: contienen con letterbox y permiten rack-focus */
 #frame,#clip{
   position:absolute; inset:0; margin:auto; z-index:1;
   width:100%; height:100%; object-fit:contain; aspect-ratio:16/9;
-  opacity:0; transition:opacity var(--fade) var(--ease-cine), transform 14s linear;
-  will-change:opacity,transform;
+  opacity:0; transition: opacity var(--fade) var(--ease-cine), transform 14s linear, filter 1.2s ease;
+  will-change: opacity, transform, filter;
 }
+#frame{ filter: blur(var(--blur)); }    /* el JS anima var(--blur) */
 .show{ opacity:1 !important; }
 
-/* GRANO + PROYECTOR */
+/* Grano suave */
 #grain{
   position:absolute; inset:0; z-index:4; pointer-events:none;
   opacity:var(--grain-opacity); mix-blend-mode:soft-light;
   background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='64' height='64'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.8' numOctaves='2'/%3E%3CfeColorMatrix values='0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 .25 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
   background-size:256px 256px;
 }
+
+/* Proyector con foco movible (spot) */
 #projector{
-  position:absolute; inset:0; z-index:3; pointer-events:none; opacity:0; transition:opacity 1.2s var(--ease-cine);
+  position:absolute; inset:0; z-index:3; pointer-events:none; opacity:0;
+  transition: opacity 1.2s var(--ease-cine);
   background:
-   radial-gradient(ellipse at 50% 45%, rgba(255,240,210,.14), transparent 60%),
-   radial-gradient(ellipse at 50% 55%, rgba(255,225,180,.08), transparent 65%);
+    radial-gradient(900px 600px at var(--spot-x) var(--spot-y), rgba(255,240,210,.18), transparent 60%),
+    radial-gradient(800px 520px at 50% 55%, rgba(255,225,180,.08), transparent 65%);
 }
 .beam #projector{ opacity:var(--beam-opacity); }
-@keyframes breathe{ 0%,100%{opacity:var(--beam-opacity)} 50%{opacity:calc(var(--beam-opacity)+var(--breathing-max))} }
+@keyframes breathe{
+  0%,100%{ opacity:var(--beam-opacity); }
+  50%{    opacity:calc(var(--beam-opacity) + var(--breathing-max)); }
+}
 .breathe #projector{ animation:breathe 8s ease-in-out infinite; }
 
-/* BOKEH/POLVO */
+/* Bokeh / polvo en el aire */
 #bokeh{ position:absolute; inset:0; z-index:2; pointer-events:none; overflow:hidden; }
 .bokeh-dot{
   position:absolute; width:6px; height:6px; border-radius:50%;
   background:rgba(255,245,220,.18); filter:blur(1px);
   opacity:0; transform:translateY(20px);
-  animation:float 9s linear forwards;
+  animation: float 9s linear forwards;
 }
-@keyframes float{ 0%{opacity:0;transform:translateY(20px)} 8%{opacity:.9}
-  85%{opacity:.9} 100%{opacity:0;transform:translateY(-80px)} }
+@keyframes float{
+  0%{opacity:0; transform:translateY(20px)}
+  8%{opacity:.9}
+  85%{opacity:.9}
+  100%{opacity:0; transform:translateY(-80px)}
+}
 
-/* KEN BURNS direccional */
+/* Viñeta y tinte (color grading escénico) */
+#vignette, #tint{ position:absolute; inset:0; pointer-events:none; z-index:6; }
+#vignette{
+  background: radial-gradient(ellipse at 50% 50%, transparent 55%, rgba(0,0,0,.55) 100%);
+  opacity: var(--vig);
+  mix-blend-mode: multiply;
+}
+#tint{
+  background: var(--tint-color);
+  opacity: var(--tint-op);
+  mix-blend-mode: soft-light;
+  transition: opacity .8s ease, background .8s ease;
+}
+
+/* Ken Burns direccional (elige una por escena) */
 @keyframes kb-zoom-in{ from{transform:scale(1) translate(0,0)} to{transform:scale(1.04) translate(0,0)} }
 @keyframes kb-up-left{ from{transform:scale(1) translate(0,0)} to{transform:scale(1.04) translate(-1.5%, -1.5%)} }
 @keyframes kb-up-right{from{transform:scale(1) translate(0,0)} to{transform:scale(1.04) translate( 1.5%, -1.5%)} }
 @keyframes kb-down-left{from{transform:scale(1) translate(0,0)} to{transform:scale(1.04) translate(-1.5%,  1.5%)} }
 @keyframes kb-down-right{from{transform:scale(1) translate(0,0)} to{transform:scale(1.04) translate( 1.5%,  1.5%)} }
-.kb-zoom-in{ animation:kb-zoom-in 12s linear both; }
-.kb-up-left{ animation:kb-up-left 12s linear both; }
-.kb-up-right{ animation:kb-up-right 12s linear both; }
-.kb-down-left{ animation:kb-down-left 12s linear both; }
-.kb-down-right{ animation:kb-down-right 12s linear both; }
+.kb-zoom-in{   animation: kb-zoom-in   12s linear both; }
+.kb-up-left{   animation: kb-up-left   12s linear both; }
+.kb-up-right{  animation: kb-up-right  12s linear both; }
+.kb-down-left{ animation: kb-down-left 12s linear both; }
+.kb-down-right{animation: kb-down-right12s linear both; }
 
-/* FLARE */
+/* Flare (pasada de luz) */
 .flare{
-  position:absolute; inset:0; z-index:6; pointer-events:none;
-  background:linear-gradient(110deg,transparent 45%,rgba(255,240,210,.25) 50%,transparent 55%);
-  transform:translateX(-120%); animation:flare-move var(--flare) var(--ease-cine) forwards;
+  position:absolute; inset:0; z-index:8; pointer-events:none;
+  background: linear-gradient(110deg,transparent 45%, rgba(255,240,210,.25) 50%, transparent 55%);
+  transform: translateX(-120%);
+  animation: flare-move var(--flare) var(--ease-cine) forwards;
 }
-@keyframes flare-move{ to{ transform:translateX(120%); } }
+@keyframes flare-move{ to{ transform: translateX(120%); } }
 
-/* BOTÓN */
+/* Botón Play/Pause siempre visible */
 #play{
   position:fixed; right:16px; bottom:16px; z-index:9999;
   background:#fff; color:#000; border:none; cursor:pointer;
@@ -102,7 +154,7 @@ img,video{ display:block; max-width:100%; }
   box-shadow:0 6px 18px rgba(0,0,0,.35);
 }
 
-/* RESPONSIVO */
+/* Responsivo */
 @media (max-width:768px){
   :root{ --bar-h:10vh; --font-size:clamp(13px,3.8vw,22px); }
   #bar-top{ padding-top:max(0px, env(safe-area-inset-top)); }
@@ -110,9 +162,12 @@ img,video{ display:block; max-width:100%; }
 }
 @media (max-width:480px) and (min-aspect-ratio:9/21){ :root{ --bar-h:9vh; } }
 
-/* REDUCIR MOVIMIENTO */
+/* Ahorro de movimiento */
 @media (prefers-reduced-motion:reduce){
-  .breathe #projector, .flare, .kb-zoom-in,.kb-up-left,.kb-up-right,.kb-down-left,.kb-down-right{ animation:none !important; }
+  .breathe #projector, .flare,
+  .kb-zoom-in,.kb-up-left,.kb-up-right,.kb-down-left,.kb-down-right{
+    animation:none !important;
+  }
   #frame,#clip{ transition:none !important; }
 }
 
