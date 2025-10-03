@@ -3,55 +3,68 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <title>Viaje — Planetarium ENHANCED</title>
-  <style>html,body{height:100%;margin:0;padding:0;background:#000;overflow:hidden}</style>
-  <link rel="stylesheet" href="CSS/viaje.css?v=10" />
-  <meta name="theme-color" content="#050814" />
-  <meta name="description" content="Experiencia visual inmersiva sincronizada con Planetarium" />
+  <title>Viaje — Galaxia Espiral</title>
+  <link rel="stylesheet" href="CSS/viaje.css?v=11" />
+  <meta name="theme-color" content="#000000" />
+  <meta name="description" content="Experiencia visual de galaxia espiral sincronizada con Planetarium" />
 </head>
 <body>
   <!-- Mensaje sin audio -->
   <div class="no-audio-msg hidden" id="noAudioMsg">
-    <p>⚠️ Audio no disponible</p>
-    <p>Esta experiencia requiere el archivo "planetarium.mp3" para sincronización perfecta.<br>Puedes continuar con simulación de tiempo.</p>
-    <button class="btn-start" onclick="document.getElementById('noAudioMsg').classList.add('hidden')">Continuar sin audio</button>
+    <h2>⚠️ Audio No Detectado</h2>
+    <p>
+      No se pudo cargar el archivo de audio.<br>
+      Verifica que el archivo esté en una de estas rutas:
+    </p>
+    <div class="audio-paths">
+      • music/planetarium.mp3<br>
+      • ./planetarium.mp3
+    </div>
+    <p style="font-size:0.9rem;margin-top:1rem;opacity:0.7">
+      Puedes continuar sin audio (con simulación de tiempo)
+    </p>
+    <button class="btn-start" onclick="document.getElementById('noAudioMsg').classList.add('hidden');document.getElementById('btnStart').click()">
+      Continuar sin audio
+    </button>
   </div>
 
-  <!-- Audio con múltiples fuentes -->
+  <!-- Audio con rutas múltiples -->
   <audio id="audio" preload="auto">
     <source src="music/planetarium.mp3" type="audio/mpeg">
-    <source src="planetarium.mp3" type="audio/mpeg">
+    <source src="./planetarium.mp3" type="audio/mpeg">
+    <source src="../music/planetarium.mp3" type="audio/mpeg">
   </audio>
 
-  <!-- Escenario principal -->
-  <div class="stage v-vignette" id="stage" aria-label="Viaje Planetarium">
-    <canvas id="bgCanvas" aria-hidden="true"></canvas>
-    <div class="foco-dorado" aria-hidden="true"></div>
-    <canvas id="fxCanvas" aria-hidden="true"></canvas>
-    <div class="grain-overlay" aria-hidden="true"></div>
-    <div class="flash" id="v-flash" aria-hidden="true"></div>
-    <div class="v-whisper" id="v-whisper" role="status" aria-live="polite"></div>
+  <!-- Escenario -->
+  <div class="stage" id="stage">
+    <canvas id="bgCanvas"></canvas>
+    
+    <!-- Núcleo galáctico -->
+    <div class="galaxy-core"></div>
+    
+    <!-- Disco de acreción -->
+    <div class="accretion-disk"></div>
+    
+    <canvas id="fxCanvas"></canvas>
+    
+    <div class="flash" id="v-flash"></div>
+    <div class="v-whisper" id="v-whisper"></div>
     
     <!-- UI -->
     <div class="ui">
-      <button class="btn-start" id="btnStart" type="button" aria-label="Iniciar experiencia visual">
-        ✨ Iniciar Viaje ✨
+      <button class="btn-start" id="btnStart" type="button">
+        🌌 Iniciar Viaje 🌌
       </button>
     </div>
   </div>
 
-  <!-- JavaScript -->
-  <script src="JS/viaje.js?v=10"></script>
+  <script src="JS/viaje.js?v=11"></script>
 
-  <!-- Fallback sin JavaScript -->
   <noscript>
-    <div style="position:fixed;inset:0;display:flex;align-items:center;justify-content:center;flex-direction:column;background:linear-gradient(135deg,#000,#1a1a2e);color:#fff;padding:2rem;text-align:center;font-family:system-ui;gap:1rem">
-      <h1 style="font-size:2rem;margin:0;text-shadow:0 0 20px rgba(251,191,36,.8)">⚠️ JavaScript Requerido</h1>
-      <p style="font-size:1.1rem;opacity:.9;max-width:500px;line-height:1.6">
-        Esta experiencia visual inmersiva requiere JavaScript habilitado para funcionar correctamente.
-      </p>
-      <p style="font-size:.9rem;opacity:.7">
-        Por favor, activa JavaScript en tu navegador y recarga la página.
+    <div style="position:fixed;inset:0;display:flex;align-items:center;justify-content:center;flex-direction:column;background:#000;color:#fff;padding:2rem;text-align:center;gap:1rem">
+      <h1 style="font-size:2rem;color:#64c8ff;text-shadow:0 0 20px #64c8ff">⚠️ JavaScript Requerido</h1>
+      <p style="font-size:1.1rem;max-width:500px;line-height:1.6">
+        Esta experiencia de galaxia espiral requiere JavaScript habilitado.
       </p>
     </div>
   </noscript>
