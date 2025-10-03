@@ -4,22 +4,17 @@
    WebGL nebulosa, flares sincronizados, estrellas dinámicas
    ========================================= */
 (() => {
-  const EPIC_START = 145; // segundos
-  const EPIC_END   = 239;
+  const EPIC_START = 0;   // ← Ahora empieza desde 0 (tu archivo es corto)
+  const EPIC_END   = 90;  // ← Ajusta a la duración real de tu mp3
   const compas = [
-    145.0, 148.6, 152.2, 155.8, 159.4, 163.0, 166.6, 170.2,
-    173.8, 177.4, 181.0, 184.6, 188.2, 191.8, 195.4, 199.0,
-    202.6, 206.2, 209.8, 213.4, 217.0, 220.6, 224.2, 227.8, 231.4, 235.0
+    0, 3.6, 7.2, 10.8, 14.4, 18, 21.6, 25.2, 28.8, 32.4, 36, 39.6, 43.2, 46.8, 50.4, 54
   ];
   let nextCompas = 0;
 
-  /* ---------- Nodos del DOM ---------- */
   const body   = document.body;
   const audio  = document.getElementById('song');
-  const stage  = document.getElementById('stage');
 
   /* ---------- Crear capas visuales ---------- */
-  // Nebulosa (WebGL canvas)
   const nebulaCanvas = document.createElement('canvas');
   nebulaCanvas.id = 'nebula-gl';
   Object.assign(nebulaCanvas.style, {
@@ -28,41 +23,31 @@
   });
   document.body.appendChild(nebulaCanvas);
 
-  // Estrellas (tres capas)
   ['stars-layer-1', 'stars-layer-2', 'stars-layer-3'].forEach(id => {
     const div = document.createElement('div');
     div.id = id;
     document.body.appendChild(div);
   });
 
-  // Viñeta épica
   const vignette = document.createElement('div');
   vignette.id = 'vignette-epic';
   document.body.appendChild(vignette);
 
-  // Tinte dinámico
   const tint = document.createElement('div');
   tint.id = 'tint-epic';
   document.body.appendChild(tint);
 
-  /* ---------- WebGL Nebulosa (sin librerías) ---------- */
+  /* ---------- WebGL Nebulosa ---------- */
   const gl = nebulaCanvas.getContext('webgl') || nebulaCanvas.getContext('experimental-webgl');
-  let glReady = false;
   if (gl) {
-    const vert = `
-      attribute vec2 a_pos;
-      void main(){ gl_Position=vec4(a_pos,0.0,1.0); }`;
-    const frag = `
-      precision mediump float;
-      uniform float u_time;
-      uniform vec2  u_res;
+    const vert = `attribute vec2 a_pos; void main(){ gl_Position=vec4(a_pos,0.0,1.0); }`;
+    const frag = `precision mediump float;
+      uniform float u_time; uniform vec2 u_res;
       vec3 hue(float t){ return 0.5+0.5*cos(t+vec3(0,2,4)); }
-      float noise(vec2 p){ return fract(sin(dot(p,vec2(12.9898,78.233)))*43758.5453); }
       void main(){
         vec2 uv = (gl_FragCoord.xy/u_res.xy)*2.0-1.0;
         uv.x *= u_res.x/u_res.y;
-        vec2 p = uv*2.0;
-        float d = length(p);
+        vec2 p = uv*2.0; float d = length(p);
         vec3 col = vec3(0);
         for(float i=0.;i<5.;i++){
           float a = atan(p.y,p.x) + u_time*0.05*(i+1.);
@@ -71,8 +56,8 @@
           col += 0.015 * s * hue(u_time*0.3 + i);
           p *= mat2(cos(a),-sin(a),sin(a),cos(a));
         }
-        col += 0.04/(d+0.02);                   // estrellas brillantes
-        col *= smoothstep(1.0,0.2,d);           // viñeta suave
+        col += 0.04/(d+0.02);
+        col *= smoothstep(1.0,0.2,d);
         gl_FragColor = vec4(col,1.0);
       }`;
 
@@ -114,7 +99,6 @@
       gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
       if (body.classList.contains('epic')) requestAnimationFrame(drawGL);
     }
-    glReady = true;
     drawGL();
   }
 
