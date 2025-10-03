@@ -1,63 +1,52 @@
 /* ===========================
    La La Land — Epílogo (CSS)
-   Enfocado a fluidez en móvil/PC
    =========================== */
 
 :root{
-  --bg:#000;
-  --fg:#f1e9d2;
+  --bg:#000; --fg:#f1e9d2;
   --bar-h:12vh;
   --font:ui-serif, Georgia, "Times New Roman", serif;
   --font-size:clamp(14px,2.2vw,28px);
-  --grain-opacity:.08;
-  --beam-opacity:.75;
-  --breathing-max:.12;
-  --fade:.85s;
+  --fade:.95s; --ease-cine:cubic-bezier(.22,.61,.36,1);
+  --grain-opacity:.08; --beam-opacity:.75; --breathing-max:.12;
   --flare:1s;
 }
 
 *{ box-sizing:border-box; }
-html,body{ height:100%; margin:0; background:var(--bg); color:var(--fg); }
+html,body{ height:100%; margin:0; background:#000; color:var(--fg); }
 img,video{ display:block; max-width:100%; }
 
-#stage{
-  position:relative;
-  height:100%;
-  overflow:hidden;
-  background:#000;
-  -webkit-tap-highlight-color:transparent;
-}
+#stage{ position:relative; height:100%; overflow:hidden; -webkit-tap-highlight-color:transparent; background:#000; }
 
-/* Barras negras + texto */
+/* BARRAS + TEXTO */
 #bars{ position:absolute; inset:0; pointer-events:none; z-index:5; }
 #bar-top,#bar-bottom{
   position:absolute; left:0; right:0; height:var(--bar-h);
   background:#000; display:flex; align-items:center; justify-content:center;
-  padding:0 clamp(10px, 4vw, 60px);
+  padding:0 clamp(10px,4vw,60px);
 }
-#bar-top{ top:0; }
-#bar-bottom{ bottom:0; }
+#bar-top{ top:0; } #bar-bottom{ bottom:0; }
 #text-top,#text-bottom{
-  font-family:var(--font);
-  font-size:var(--font-size);
-  letter-spacing:.015em;
-  text-align:center; line-height:1.2;
-  opacity:.92; text-wrap:balance;
-  text-shadow:0 1px 2px rgba(0,0,0,.8);
+  font-family:var(--font); font-size:var(--font-size); line-height:1.2;
+  letter-spacing:.015em; opacity:.92; text-shadow:0 1px 2px rgba(0,0,0,.8); text-align:center; text-wrap:balance;
 }
 
-/* Pantalla principal */
+/* PANTALLA */
 #screen{ position:absolute; inset:0; display:grid; place-items:center; background:#000; isolation:isolate; }
+#bg-fill{
+  position:absolute; inset:0; z-index:0; pointer-events:none; opacity:.6;
+  filter: blur(24px) saturate(110%); transform:scale(1.08);
+  background-position:center; background-size:cover; background-repeat:no-repeat;
+}
 #frame,#clip{
-  position:absolute; inset:0; margin:auto;
-  width:100%; height:100%;
-  object-fit:contain; aspect-ratio:16/9;
-  opacity:0; transition:opacity var(--fade) ease;
+  position:absolute; inset:0; margin:auto; z-index:1;
+  width:100%; height:100%; object-fit:contain; aspect-ratio:16/9;
+  opacity:0; transition:opacity var(--fade) var(--ease-cine), transform 14s linear;
   will-change:opacity,transform;
 }
 .show{ opacity:1 !important; }
 
-/* Grano y proyector */
+/* GRANO + PROYECTOR */
 #grain{
   position:absolute; inset:0; z-index:4; pointer-events:none;
   opacity:var(--grain-opacity); mix-blend-mode:soft-light;
@@ -65,58 +54,66 @@ img,video{ display:block; max-width:100%; }
   background-size:256px 256px;
 }
 #projector{
-  position:absolute; inset:0; z-index:3; pointer-events:none;
-  opacity:0; transition:opacity 1.2s ease;
+  position:absolute; inset:0; z-index:3; pointer-events:none; opacity:0; transition:opacity 1.2s var(--ease-cine);
   background:
-    radial-gradient(ellipse at 50% 45%, rgba(255,240,210,.14), transparent 60%),
-    radial-gradient(ellipse at 50% 55%, rgba(255,225,180,.08), transparent 65%);
+   radial-gradient(ellipse at 50% 45%, rgba(255,240,210,.14), transparent 60%),
+   radial-gradient(ellipse at 50% 55%, rgba(255,225,180,.08), transparent 65%);
 }
 .beam #projector{ opacity:var(--beam-opacity); }
-
-/* Ken Burns mínimo (aplícalo con .kb desde JS) */
-@keyframes kb-slow{
-  0%{ transform:scale(1) translate3d(0,0,0); }
-  100%{ transform:scale(1.04) translate3d(.5%, .5%, 0); }
-}
-.kb{ animation:kb-slow 12s linear both; }
-
-/* Respiración del haz (opcional, añade .breathe a #stage) */
-@keyframes breathe{
-  0%,100%{ opacity:var(--beam-opacity); }
-  50%{ opacity:calc(var(--beam-opacity) + var(--breathing-max)); }
-}
+@keyframes breathe{ 0%,100%{opacity:var(--beam-opacity)} 50%{opacity:calc(var(--beam-opacity)+var(--breathing-max))} }
 .breathe #projector{ animation:breathe 8s ease-in-out infinite; }
 
-/* Flare suave */
+/* BOKEH/POLVO */
+#bokeh{ position:absolute; inset:0; z-index:2; pointer-events:none; overflow:hidden; }
+.bokeh-dot{
+  position:absolute; width:6px; height:6px; border-radius:50%;
+  background:rgba(255,245,220,.18); filter:blur(1px);
+  opacity:0; transform:translateY(20px);
+  animation:float 9s linear forwards;
+}
+@keyframes float{ 0%{opacity:0;transform:translateY(20px)} 8%{opacity:.9}
+  85%{opacity:.9} 100%{opacity:0;transform:translateY(-80px)} }
+
+/* KEN BURNS direccional */
+@keyframes kb-zoom-in{ from{transform:scale(1) translate(0,0)} to{transform:scale(1.04) translate(0,0)} }
+@keyframes kb-up-left{ from{transform:scale(1) translate(0,0)} to{transform:scale(1.04) translate(-1.5%, -1.5%)} }
+@keyframes kb-up-right{from{transform:scale(1) translate(0,0)} to{transform:scale(1.04) translate( 1.5%, -1.5%)} }
+@keyframes kb-down-left{from{transform:scale(1) translate(0,0)} to{transform:scale(1.04) translate(-1.5%,  1.5%)} }
+@keyframes kb-down-right{from{transform:scale(1) translate(0,0)} to{transform:scale(1.04) translate( 1.5%,  1.5%)} }
+.kb-zoom-in{ animation:kb-zoom-in 12s linear both; }
+.kb-up-left{ animation:kb-up-left 12s linear both; }
+.kb-up-right{ animation:kb-up-right 12s linear both; }
+.kb-down-left{ animation:kb-down-left 12s linear both; }
+.kb-down-right{ animation:kb-down-right 12s linear both; }
+
+/* FLARE */
 .flare{
   position:absolute; inset:0; z-index:6; pointer-events:none;
   background:linear-gradient(110deg,transparent 45%,rgba(255,240,210,.25) 50%,transparent 55%);
-  transform:translateX(-120%);
-  animation:flare-move var(--flare) ease-out forwards;
+  transform:translateX(-120%); animation:flare-move var(--flare) var(--ease-cine) forwards;
 }
 @keyframes flare-move{ to{ transform:translateX(120%); } }
 
-/* BOTÓN PLAY — visible SIEMPRE */
+/* BOTÓN */
 #play{
   position:fixed; right:16px; bottom:16px; z-index:9999;
-  background:#ffffff; color:#000; border:none; cursor:pointer;
+  background:#fff; color:#000; border:none; cursor:pointer;
   border-radius:.75rem; padding:.7rem 1rem; font-size:18px; font-weight:600;
   box-shadow:0 6px 18px rgba(0,0,0,.35);
 }
 
-/* Responsivo */
+/* RESPONSIVO */
 @media (max-width:768px){
   :root{ --bar-h:10vh; --font-size:clamp(13px,3.8vw,22px); }
   #bar-top{ padding-top:max(0px, env(safe-area-inset-top)); }
   #bar-bottom{ padding-bottom:max(0px, env(safe-area-inset-bottom)); }
 }
-@media (max-width:480px) and (min-aspect-ratio:9/21){
-  :root{ --bar-h:9vh; }
-}
+@media (max-width:480px) and (min-aspect-ratio:9/21){ :root{ --bar-h:9vh; } }
 
-/* Ahorro de movimiento */
+/* REDUCIR MOVIMIENTO */
 @media (prefers-reduced-motion:reduce){
-  .kb, .breathe #projector, .flare{ animation:none !important; }
+  .breathe #projector, .flare, .kb-zoom-in,.kb-up-left,.kb-up-right,.kb-down-left,.kb-down-right{ animation:none !important; }
   #frame,#clip{ transition:none !important; }
 }
+
 
