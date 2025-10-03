@@ -1,7 +1,6 @@
 /* =====================================
    La La Land — Epílogo (JS COMPLETO)
-   Cine-look: grading, bokeh, blur-fill,
-   Ken Burns direccional, foco proyector
+   Cine-look + Wind-down desde 6:35
    ===================================== */
 (() => {
   const $ = s => document.querySelector(s);
@@ -19,8 +18,6 @@
   const audio = $('#song');
 
   // ====== PLAN (5:40 → 7:40) ======
-  // Incluye: dir (Ken Burns), vig (viñeta), tint + tintOp (grading),
-  // blurStart (rack focus), bokeh (densidad), spotX/spotY (foco proyector)
   const PLAN = [
     { start: 340, dur: 4, type: 'black',
       vig:.38, tint:'transparent', tintOp:0, bokeh:0, spotX:'50%', spotY:'50%' },
@@ -47,34 +44,41 @@
       tint:'rgba(255,235,200,1)', tintOp:.10,
       blurStart:2, bokeh:12, spotX:'52%', spotY:'42%', flare:true },
 
-    { start: 394, dur: 12, src: 'IMG/05-invernadero-beso.jpg',
-      dir:'kb-zoom-in', vig:.36,
-      tint:'rgba(255,225,180,1)', tintOp:.10,
-      blurStart:1, bokeh:8, spotX:'50%', spotY:'50%' },
+    /* ------- MODO WIND-DOWN inicia ~6:35 (395s) ------- */
 
+    // 5) Invernadero — transición a despedida (zoom out)
+    { start: 394, dur: 12, src: 'IMG/05-invernadero-beso.jpg',
+      dir:'kb-out-zoom',
+      vig:.40, tint:'rgba(235,240,255,1)', tintOp:.06,
+      blurStart:1, bokeh:5, spotX:'50%', spotY:'46%' },
+
+    // 6) Beso mejilla — más calmo
     { start: 406, dur: 10, src: 'IMG/06-beso-mejilla-jean.jpg',
       textBottom: 'Por los planes que soñamos.',
-      dir:'kb-down-left', vig:.40,
-      tint:'rgba(255,225,185,1)', tintOp:.14,
-      blurStart:2, bokeh:6, spotX:'48%', spotY:'52%' },
+      dir:'kb-out-left',
+      vig:.44, tint:'rgba(240,245,255,1)', tintOp:.06,
+      blurStart:1, bokeh:4, spotX:'48%', spotY:'52%' },
 
+    // 7) Video Van Gogh — estrellas se apagan suave
     { start: 416, dur: 14,
       video: ['IMG/07-video-vangogh.mp4','IMG/07-video-vangogh.webm'],
       textBottom: 'Contigo todo fue posible.',
-      vig:.30, tint:'transparent', tintOp:0,
-      blurStart:0, bokeh:10, spotX:'50%', spotY:'45%' },
+      vig:.34, tint:'transparent', tintOp:0,
+      blurStart:0, bokeh:6, spotX:'50%', spotY:'45%' },
 
+    // 8) Café balcón — último respiro
     { start: 430, dur: 14, src: 'IMG/08-cafe-balcon.jpg',
-      dir:'kb-up-right', vig:.44,
-      tint:'rgba(255,220,175,1)', tintOp:.18,
-      blurStart:2, bokeh:10, spotX:'52%', spotY:'46%' },
+      dir:'kb-out-right',
+      vig:.48, tint:'rgba(255,225,195,1)', tintOp:.12,
+      blurStart:2, bokeh:4, spotX:'52%', spotY:'46%' },
 
+    // 9) Selfie celeste — créditos y fade a negro
     { start: 444, dur: 16, src: 'IMG/09-selfie-celeste.jpg',
       textTop: 'Feliz cumpleaños, amor.',
       textBottom: 'Para ti, que eres mi estrella ✨',
-      dir:'kb-zoom-in', vig:.36,
-      tint:'rgba(255,230,200,1)', tintOp:.12,
-      blurStart:0, bokeh:6, spotX:'50%', spotY:'50%' }
+      dir:'kb-out-zoom',
+      vig:.50, tint:'rgba(245,235,220,1)', tintOp:.10,
+      blurStart:0, bokeh:2, spotX:'50%', spotY:'50%' }
   ];
 
   // ====== Reproductor ======
@@ -85,12 +89,9 @@
         if (!jumped) { audio.currentTime = 340; jumped = true; } // saltar a 5:40
         playBtn.textContent = '⏸';
         stage.classList.add('beam'); // proyector encendido
-      }).catch(() => {
-        playBtn.textContent = '▶︎';
-      });
+      }).catch(() => { playBtn.textContent = '▶︎'; });
     } else {
-      audio.pause();
-      playBtn.textContent = '▶︎';
+      audio.pause(); playBtn.textContent = '▶︎';
     }
   });
 
@@ -98,6 +99,7 @@
   vid.setAttribute('playsinline', '');
   vid.muted = true;
   vid.preload = 'auto';
+  vid.addEventListener('error', e => console.error('Error VIDEO:', vid.src, e));
 
   // Preload imágenes
   PLAN.forEach(it => { if (it.src) { const p = new Image(); p.src = it.src; } });
@@ -137,9 +139,9 @@
   function clearTexts(){ tTop.textContent=''; tBottom.textContent=''; }
 
   function applyKenBurns(dir){
-    img.className = ''; // limpia todas las KB previas
-    img.id = 'frame';   // conserva el id
-    if (dir) img.classList.add('show', dir);
+    // limpia todas las KB previas pero conserva el id
+    img.className = 'show';
+    if (dir) img.classList.add(dir);
   }
 
   async function setVideoSource(list){
@@ -148,13 +150,21 @@
       try{
         if (vid.src !== new URL(src, location.href).href) vid.src = src;
         vid.currentTime = 0;
-        await vid.play();      // muted + playsinline → debería reproducir
+        await vid.play();
         return true;
-      }catch(e){
-        // intenta el siguiente
-      }
+      }catch(e){ /* intenta siguiente */ }
     }
     return false;
+  }
+
+  // ====== Wind-down helpers ======
+  function setWinddown(on = true){
+    stage.classList.toggle('winddown', on);
+    const root = document.documentElement.style;
+    root.setProperty('--sat', on ? '0.92' : '1'); // baja un poco la saturación
+  }
+  function fadeToBlack(progress){ // 0..1
+    document.documentElement.style.setProperty('--curtain', String(Math.max(0, Math.min(1, progress))));
   }
 
   // ====== Mostrar item ======
@@ -181,26 +191,20 @@
       clearTexts(); return;
     }
 
-    // Rack focus (solo imágenes)
     const blurStart = (it.blurStart ?? 0) + 'px';
 
     if (it.video){
-      // VIDEO
-      img.classList.remove('show');
-      vid.classList.remove('show');
-      vid.pause();
+      img.classList.remove('show'); vid.classList.remove('show'); vid.pause();
       const ok = await setVideoSource(it.video);
-      if (ok) vid.classList.add('show');
-      else clearTexts();
+      if (ok) vid.classList.add('show'); else clearTexts();
     } else if (it.src){
-      // IMAGEN
       vid.pause(); vid.classList.remove('show');
       img.style.setProperty('--blur', blurStart);
       img.src = it.src;
       img.classList.add('show');
-      // quita blur en el siguiente frame (rack focus)
+      // rack focus
       requestAnimationFrame(()=>{ img.style.setProperty('--blur', '0px'); });
-      // Ken Burns direccional
+      // Ken Burns
       requestAnimationFrame(()=> applyKenBurns(it.dir));
     }
 
@@ -211,6 +215,19 @@
   let currentIndex = -1, rafId = null;
   function step(){
     const now = audio.currentTime;
+
+    // Activa wind-down desde 6:35 (395s)
+    if (now >= 395 && !stage.classList.contains('winddown')) setWinddown(true);
+
+    // Fundido final: 7:24 (444s) → 7:40 (460s)
+    if (now >= 444){
+      const p = Math.min(1, (now - 444) / 16);
+      fadeToBlack(p);
+    } else {
+      fadeToBlack(0);
+    }
+
+    // Selección de escena
     const i = PLAN.findIndex(it => now >= it.start - 0.05 && now < (it.start + it.dur));
     if (i !== -1 && i !== currentIndex){
       currentIndex = i;
