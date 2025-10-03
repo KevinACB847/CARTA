@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>La La Land – Planetarium Epic (2:25-3:59)</title>
+
+  <!-- Estilos épicos -->
+  <link rel="stylesheet" href="epic.css" />
+
+  <!-- Estilos extra para este demo -->
+  <style>
+    /* Botón cine */
+    #launch {
+      position: fixed;
+      inset: 0;
+      z-index: 100;
+      background: #000;
+      display: grid;
+      place-items: center;
+    }
+    #launch button {
+      font-size: 1.5rem;
+      padding: 1rem 2rem;
+      border: none;
+      border-radius: 8px;
+      background: #fff;
+      color: #000;
+      cursor: pointer;
+      transition: transform 0.3s ease;
+    }
+    #launch button:hover {
+      transform: scale(1.05);
+    }
+
+    /* Ocultar elementos hasta épico */
+    #nebula-gl,
+    #stars-layer-1,
+    #stars-layer-2,
+    #stars-layer-3,
+    #vignette-epic,
+    #tint-epic {
+      opacity: 0;
+    }
+
+    /* Tipografía */
+    #info {
+      position: fixed;
+      bottom: 2rem;
+      left: 50%;
+      transform: translateX(-50%);
+      color: #fff;
+      font-size: 1rem;
+      text-align: center;
+      opacity: 0.7;
+      z-index: 50;
+    }
+  </style>
+</head>
+
+<body>
+  <!-- Pantalla de lanzamiento -->
+  <div id="launch">
+    <button id="playBtn">▶︎ Entrar al Planetarium</button>
+  </div>
+
+  <!-- Info -->
+  <div id="info">La La Land – Planetarium<br>Epic segment 2:25 → 3:59</div>
+
+  <!-- Audio -->
+  <audio id="song" src="music/epilogue.mp3" preload="auto"></audio>
+
+  <!-- Scripts -->
+  <script src="epic.js"></script>
+
+  <!-- Control de lanzamiento -->
+  <script>
+    const btn   = document.getElementById('playBtn');
+    const audio = document.getElementById('song');
+    const launch= document.getElementById('launch');
+
+    btn.onclick = () => {
+      audio.currentTime = 145; // saltar al min 2:25
+      audio.play();
+      launch.style.opacity = '0';
+      setTimeout(() => launch.remove(), 1000);
+    };
+
+    // Si el audio termina, recargar página (opcional)
+    audio.addEventListener('ended', () => location.reload());
+  </script>
+</body>
+</html>
