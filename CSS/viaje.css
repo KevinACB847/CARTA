@@ -106,6 +106,7 @@ body{
   box-shadow:0 0 0 2px rgba(255,255,255,.04) inset,0 8px 24px rgba(0,0,0,.45);
   transition:transform 160ms ease, box-shadow 240ms ease, filter 200ms ease;
   filter:drop-shadow(0 6px 18px rgba(36,59,107,.45));
+  cursor:pointer;
 }
 .btn-start:hover{transform:translateY(-1px);box-shadow:0 0 0 2px rgba(255,255,255,.06) inset,0 10px 30px rgba(0,0,0,.5),0 0 0 6px rgba(59,95,180,.25)}
 .btn-start:active{transform:translateY(0);box-shadow:0 0 0 2px rgba(255,255,255,.05) inset,0 6px 16px rgba(0,0,0,.45),0 0 0 3px rgba(59,95,180,.35)}
@@ -141,6 +142,13 @@ body.v-end .grain-overlay{opacity:0}
 #bgCanvas,#fxCanvas{transform:translateZ(0)}
 @media (pointer:coarse){.grain-overlay{display:none !important}}
 
-.hidden{display:none !important}.dim{opacity:.6;transition:opacity 240ms ease}
+.hidden{display:none !important}
+.dim{opacity:.6;transition:opacity 240ms ease}
 
-
+/* Mensaje sin audio */
+.no-audio-msg{
+  position:absolute;inset:0;z-index:100;background:rgba(11,15,29,.95);
+  display:flex;align-items:center;justify-content:center;flex-direction:column;
+  color:var(--ivory);padding:2rem;text-align:center;gap:1rem;
+}
+.no-audio-msg.hidden{display:none}
